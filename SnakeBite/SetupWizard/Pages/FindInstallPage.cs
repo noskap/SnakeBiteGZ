@@ -65,20 +65,19 @@ namespace SnakeBite.SetupWizard
             };
             bw.RunWorkerAsync();
             */        
-            BackupManager.DeleteOriginals();
+            // Steam validation for GZ
+            System.Diagnostics.Process.Start("steam://validate/311340/");
         }
 
         private void buttonBrowse_Click(object sender, EventArgs e)
         {
             OpenFileDialog findMGSV = new OpenFileDialog();
-            findMGSV.Filter = "Metal Gear Solid V|MGSVTPP.exe";
-            DialogResult findResult = findMGSV.ShowDialog();
-            if (findResult != DialogResult.OK) return;
-
-            string fileDir = Path.GetDirectoryName(findMGSV.FileName);
-            textInstallPath.Text = fileDir;
-            Properties.Settings.Default.InstallPath = fileDir;
-            Properties.Settings.Default.Save();
+            findMGSV.FileName = "MgsGroundZeroes.exe";
+            findMGSV.Filter = "Metal Gear Solid V: Ground Zeroes|MgsGroundZeroes.exe";
+            if (findMGSV.ShowDialog() == DialogResult.OK)
+            {
+                textBoxInstallPath.Text = Path.GetDirectoryName(findMGSV.FileName);
+            }
         }
     }
 }

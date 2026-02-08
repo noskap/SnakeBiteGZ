@@ -8,7 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
-using static SnakeBite.GamePaths;
+
 
 namespace SnakeBite
 {
@@ -20,19 +20,19 @@ namespace SnakeBite
             stopwatch.Start();
 
             Debug.LogLine("[Install] Start", Debug.LogLevel.Basic);
-            ModManager.ClearBuildFiles(ZeroPath, OnePath, SnakeBiteSettings, SavePresetPath); // deletes any leftover sb_build files that might still be in the directory (ie from a mid-process shutdown) 
+            ModManager.ClearBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath); // deletes any leftover sb_build files that might still be in the directory (ie from a mid-process shutdown) 
             ModManager.ClearSBGameDir(); // deletes the game directory sb_build
             ModManager.CleanupFolders(); // deletes the work folders which contain extracted files from 00/01
 
             if (Properties.Settings.Default.AutosaveRevertPreset == true)
             {
-                PresetManager.SavePreset(SavePresetPath + build_ext); // creates a backup preset file sb_build
+                PresetManager.SavePreset(GamePaths.SavePresetPath + GamePaths.build_ext); // creates a backup preset file sb_build
             }
             else
             {
                 Debug.LogLine("[Install] Skipping RevertChanges.MGSVPreset Save", Debug.LogLevel.Basic);
             }
-            File.Copy(SnakeBiteSettings, SnakeBiteSettings + build_ext, true); // creates a settings sb_build
+            File.Copy(GamePaths.SnakeBiteSettings, GamePaths.SnakeBiteSettings + GamePaths.build_ext, true); // creates a settings sb_build
 
             GzsLib.LoadDictionaries();
             List<ModEntry> installEntryList = new List<ModEntry>();
@@ -43,17 +43,17 @@ namespace SnakeBite
             bool hasQarZero = ModManager.hasQarZeroFiles(installEntryList);
             if (hasQarZero)
             {
-                zeroFiles = GzsLib.ExtractArchive<QarFile>(ZeroPath, "_working0");
+                zeroFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.ZeroPath, "_working0");
             }
 
             List<string> oneFiles = null;
             bool hasFtexs = ModManager.foundLooseFtexs(installEntryList); 
             if (hasFtexs)
             {
-                oneFiles = GzsLib.ExtractArchive<QarFile>(OnePath, "_working1");
+                oneFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.OnePath, "_working1");
             }
 
-            SettingsManager SBBuildManager = new SettingsManager(SnakeBiteSettings + build_ext);
+            SettingsManager SBBuildManager = new SettingsManager(GamePaths.SnakeBiteSettings + GamePaths.build_ext);
             var gameData = SBBuildManager.GetGameData();
             ModManager.ValidateGameData(ref gameData, ref zeroFiles);
 
@@ -78,16 +78,16 @@ namespace SnakeBite
                 {
                     zeroFiles = zeroFilesHashSet.ToList();
                     zeroFiles.Sort();
-                    GzsLib.WriteQarArchive(ZeroPath + build_ext, "_working0", zeroFiles, GzsLib.zeroFlags);
+                    GzsLib.WriteQarArchive(GamePaths.ZeroPath + GamePaths.build_ext, "_working0", zeroFiles, GzsLib.zeroFlags);
                 }
                 if (hasFtexs)
                 {
                     oneFiles.Sort();
-                    GzsLib.WriteQarArchive(OnePath + build_ext, "_working1", oneFiles, GzsLib.oneFlags);
+                    GzsLib.WriteQarArchive(GamePaths.OnePath + GamePaths.build_ext, "_working1", oneFiles, GzsLib.oneFlags);
                 }
 
                 ModManager.PromoteGameDirFiles();
-                ModManager.PromoteBuildFiles(ZeroPath, OnePath, SnakeBiteSettings, SavePresetPath);
+                ModManager.PromoteBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
 
                 if (!skipCleanup)
                 {
@@ -106,7 +106,7 @@ namespace SnakeBite
                 Debug.LogLine("[Install] Exception: " + e, Debug.LogLevel.Basic);
                 MessageBox.Show("An error has occurred during the installation process and SnakeBite could not install the selected mod(s).\nException: " + e, "Mod(s) could not be installed", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-                ModManager.ClearBuildFiles(ZeroPath, OnePath, SnakeBiteSettings, SavePresetPath);
+                ModManager.ClearBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
                 ModManager.CleanupFolders();
 
                 bool restoreRetry = false;
@@ -204,7 +204,7 @@ namespace SnakeBite
             for (int i = modEntry.ModQarEntries.Count - 1; i >= 0; i--)
             {
                 ModQarEntry qarEntry = modEntry.ModQarEntries[i];
-                if (!GzsLib.IsExtensionValidForArchive(qarEntry.FilePath, ".dat"))
+                if (!GzsLib.IsExtensionValidForArchive(qarEntry.FilePath, ".dat") && !GzsLib.IsExtensionValidForArchive(qarEntry.FilePath, ".g0s"))
                 {
                     Debug.LogLine(String.Format("[ValidateModEntries] Found invalid file entry {0} for archive {1}", qarEntry.FilePath, qarEntry.SourceName), Debug.LogLevel.Basic);
                     modEntry.ModQarEntries.RemoveAt(i);
@@ -327,7 +327,7 @@ namespace SnakeBite
                 if (skipFile == false)
                 {
                     string sourceFile = Path.Combine("_extr\\GameDir", Tools.ToWinPath(fileEntry.FilePath));
-                    string destFile = Path.Combine(GameDirSB_Build, Tools.ToWinPath(fileEntry.FilePath));
+                    string destFile = Path.Combine(GamePaths.GameDirSB_Build, Tools.ToWinPath(fileEntry.FilePath));
                     Directory.CreateDirectory(Path.GetDirectoryName(destFile));
                     File.Copy(sourceFile, destFile, true);
 
@@ -449,7 +449,7 @@ namespace SnakeBite
                             PullFromVanillas.Add(newFpkEntry.FpkFile);
 
                             string windowsFilePath = Tools.ToWinPath(newFpkEntry.FpkFile); // Extract the pack file from the vanilla game files, place into _gamefpk for future use
-                            string sourceArchive = Path.Combine(GameDir, "master\\" + existingPack.QarFile);
+                            string sourceArchive = Path.Combine(GamePaths.GameDir, "master\\" + existingPack.QarFile);
                             string workingPath = Path.Combine("_gameFpk", windowsFilePath);
                             if (!Directory.Exists(Path.GetDirectoryName(workingPath))) Directory.CreateDirectory(Path.GetDirectoryName(workingPath));
 
