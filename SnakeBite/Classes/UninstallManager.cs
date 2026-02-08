@@ -104,14 +104,14 @@ namespace SnakeBite
 
                 Debug.LogLine("[Uninstall] Uninstall complete", Debug.LogLevel.Basic);
                 stopwatch.Stop();
-                Debug.LogLine($"[Uninstall] Uninstall took {stopwatch.ElapsedMilliseconds} ms", Debug.LogLevel.Basic);
+                Debug.LogLine(String.Format("[Uninstall] Uninstall took {0} ms", stopwatch.ElapsedMilliseconds), Debug.LogLevel.Basic);
                 return true;
             }
             catch (Exception e)
             {
                 Debug.LogLine("[Uninstall] Exception: " + e, Debug.LogLevel.Basic);
                 stopwatch.Stop();
-                Debug.LogLine($"[Uninstall] Uninstall failed at {stopwatch.ElapsedMilliseconds} ms", Debug.LogLevel.Basic);
+                Debug.LogLine(String.Format("[Uninstall] Uninstall failed at {0} ms", stopwatch.ElapsedMilliseconds), Debug.LogLevel.Basic);
                 MessageBox.Show("An error has occurred during the uninstallation process and SnakeBite could not uninstall the selected mod(s).\nException: " + e);
 
                 // clean up failed files

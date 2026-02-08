@@ -179,7 +179,7 @@ namespace SnakeBite
                 // Check if mod requires SB update
                 if (modSBVersion > SBVersion)
                 {
-                    if (DialogResult.Yes != MessageBox.Show($"'{metaData.Name}' was created with SnakeBite {metaData.SBVersion.AsString()} and may not be compatible with {SBVersion}.\n\nContinue?", "Update required", MessageBoxButtons.YesNo, MessageBoxIcon.Warning))
+                    if (DialogResult.Yes != MessageBox.Show(String.Format("'{0}' was created with SnakeBite {1} and may not be compatible with {2}.\n\nContinue?", metaData.Name, metaData.SBVersion.AsString(), SBVersion), "Update required", MessageBoxButtons.YesNo, MessageBoxIcon.Warning))
                     {
                         ModFiles.RemoveAt(i);
                     }

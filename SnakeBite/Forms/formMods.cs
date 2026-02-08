@@ -161,17 +161,17 @@ namespace SnakeBite
                             InstallFileList.Add(mgsv);
                         }
                         if (InstallFileList.Count == 0) {
-                            Debug.LogLine($"[Install] Could not find any .mgsv files in {installModPath}.", Debug.LogLevel.Basic);
+                            Debug.LogLine(String.Format("[Install] Could not find any .mgsv files in {0}.", installModPath), Debug.LogLevel.Basic);
                         }
                         InstallFileList.Sort();
                     } else {
-                        Debug.LogLine($"[Install] Could not find file or directory {installModPath}.", Debug.LogLevel.Basic);
+                        Debug.LogLine(String.Format("[Install] Could not find file or directory {0}.", installModPath), Debug.LogLevel.Basic);
                     }
                 }
             }
             if (InstallFileList.Count == 0)
             {
-                Debug.LogLine($"[Install] Could not find any .mgsv files in installPaths.", Debug.LogLevel.Basic);
+                Debug.LogLine("[Install] Could not find any .mgsv files in installPaths.", Debug.LogLevel.Basic);
                 return;
             }
             if (!skipConflictChecks)
@@ -183,9 +183,9 @@ namespace SnakeBite
             }
             string displayPath = InstallFileList[0];
             if (InstallFileList.Count > 1) {
-                displayPath = $"{displayPath} and {InstallFileList.Count} mods";
+                displayPath = String.Format("{0} and {1} mods", displayPath, InstallFileList.Count);
             }
-            ProgressWindow.Show("Installing Mod", $"Installing {displayPath}...",
+            ProgressWindow.Show("Installing Mod", String.Format("Installing {0}...", displayPath),
                 new Action((MethodInvoker)delegate { InstallManager.InstallMods(InstallFileList, skipCleanup); }
             ), log);
             this.Invoke((MethodInvoker)delegate { RefreshInstalledMods(); });

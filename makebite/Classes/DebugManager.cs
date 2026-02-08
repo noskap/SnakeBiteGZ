@@ -24,7 +24,7 @@ namespace SnakeBite
             {
                 RecursiveCopyLogs(1, MAX_COUNT);
 
-                string logPrevPath = Path.Combine(logDir, $"{LOG_FILE_PREV}.{"1"}{TXT_EXT}");
+                string logPrevPath = Path.Combine(logDir, String.Format("{0}.1{1}", LOG_FILE_PREV, TXT_EXT));
 
                 File.Copy(logFilePath, logPrevPath, true);
                 File.Delete(logFilePath);
@@ -42,8 +42,8 @@ namespace SnakeBite
         {
             if (i < max)
             {
-                string logPrevPath = Path.Combine(logDir, $"{LOG_FILE_PREV}.{i}{TXT_EXT}"); // assumption: logdir already exists
-                string logPrevIncrementedPath = Path.Combine(logDir, $"{LOG_FILE_PREV}.{i + 1}{TXT_EXT}");
+                string logPrevPath = Path.Combine(logDir, String.Format("{0}.{1}{2}", LOG_FILE_PREV, i, TXT_EXT)); // assumption: logdir already exists
+                string logPrevIncrementedPath = Path.Combine(logDir, String.Format("{0}.{1}{2}", LOG_FILE_PREV, i + 1, TXT_EXT));
 
                 RecursiveCopyLogs(i + 1, max);
 
@@ -57,7 +57,7 @@ namespace SnakeBite
         {
             for (int i = count - 1; i >= 1; i--)
             {
-                string logPrevPath = Path.Combine(logDir, $"{LOG_FILE_PREV}.{i}{TXT_EXT}");
+                string logPrevPath = Path.Combine(logDir, String.Format("{0}.{1}{2}", LOG_FILE_PREV, i, TXT_EXT));
                 if (File.Exists(logPrevPath))
                     Process.Start(logPrevPath);
             }
@@ -91,7 +91,7 @@ namespace SnakeBite
             FileMode F = File.Exists(logFilePath) ? FileMode.Append : FileMode.Create;
             using (FileStream s = new FileStream(logFilePath, F))
             {
-                string logString = $"{Text}\r\n";
+                string logString = String.Format("{0}\r\n", Text);
                 s.Write(Encoding.UTF8.GetBytes(logString), 0, logString.Length);
                 Console.Write(logString);
             }

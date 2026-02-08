@@ -135,13 +135,13 @@ namespace SnakeBite.GzsTool
         {
             if (!File.Exists(FileName))
             {
-                Debug.LogLine($"[GzsLib] File not found: {FileName}");
+                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", FileName));
                 throw new FileNotFoundException();
             }
             else
             {
                 string name = Path.GetFileName(FileName);
-                Debug.LogLine($"[GzsLib] Extracting {name} to {OutputPath} ({Tools.GetFileSizeKB(FileName)} KB)");
+                Debug.LogLine(String.Format("[GzsLib] Extracting {0} to {1} ({2} KB)", name, OutputPath, Tools.GetFileSizeKB(FileName)));
 
                 using (FileStream archiveFile = new FileStream(FileName, FileMode.Open))
                 {
@@ -164,7 +164,7 @@ namespace SnakeBite.GzsTool
                             outFiles.Add(v.FileName);
                         }
                     }
-                    Debug.LogLine($"[GzsLib] Extracted {outFiles.Count} files from {name}");
+                    Debug.LogLine(String.Format("[GzsLib] Extracted {0} files from {1}", outFiles.Count, name));
                     return outFiles;
                 }
             }
@@ -175,7 +175,7 @@ namespace SnakeBite.GzsTool
         {
             if (!File.Exists(SourceArchive))
             {
-                Debug.LogLine($"[GzsLib] File not found: {SourceArchive}");
+                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", SourceArchive));
                 throw new FileNotFoundException();
             }
             else
@@ -219,7 +219,7 @@ namespace SnakeBite.GzsTool
         {
             if (!File.Exists(SourceArchive))
             {
-                Debug.LogLine($"[GzsLib] File not found: {SourceArchive}");
+                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", SourceArchive));
                 throw new FileNotFoundException();
             }
             else
@@ -259,11 +259,11 @@ namespace SnakeBite.GzsTool
 
         public static T ReadArchive<T>(string FileName) where T : ArchiveFile, new() {
             if (!File.Exists(FileName)) {
-                Debug.LogLine($"[GzsLib] File not found: {FileName}");
+                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", FileName));
                 throw new FileNotFoundException();
             } else {
                 string name = Path.GetFileName(FileName);
-                Debug.LogLine($"[GzsLib] Reading {name})");
+                Debug.LogLine(String.Format("[GzsLib] Reading {0})", name));
 
                 using (FileStream archiveFile = new FileStream(FileName, FileMode.Open)) {
                     List<string> outFiles = new List<string>();
@@ -289,13 +289,13 @@ namespace SnakeBite.GzsTool
         {
             if (!File.Exists(ArchiveName))
             {
-                Debug.LogLine($"[GzsLib] File not found: {ArchiveName}");
+                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", ArchiveName));
                 throw new FileNotFoundException();
             }
             else
             {
                 string name = Path.GetFileName(ArchiveName);
-                Debug.LogLine($"[GzsLib] Reading archive contents: {name} ({Tools.GetFileSizeKB(ArchiveName)} KB)");
+                Debug.LogLine(String.Format("[GzsLib] Reading archive contents: {0} ({1} KB)", name, Tools.GetFileSizeKB(ArchiveName)));
                 using (FileStream archiveFile = new FileStream(ArchiveName, FileMode.Open))
                 {
                     List<GameFile> archiveContents = new List<GameFile>();
@@ -319,13 +319,13 @@ namespace SnakeBite.GzsTool
         {
             if (!File.Exists(qarPath))
             {
-                Debug.LogLine($"[GzsLib] File not found: {qarPath}");
+                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", qarPath));
                 throw new FileNotFoundException();
             }
             else
             {
                 string name = Path.GetFileName(qarPath);
-                Debug.LogLine($"[GzsLib] Reading archive contents: {name}");
+                Debug.LogLine(String.Format("[GzsLib] Reading archive contents: {0}", name));
                 using (FileStream archiveFile = new FileStream(qarPath, FileMode.Open))
                 {
                     var qarFiles = new Dictionary<ulong, GameFile>();
@@ -352,13 +352,13 @@ namespace SnakeBite.GzsTool
         {
             if (!File.Exists(ArchiveName))
             {
-                Debug.LogLine($"[GzsLib] File not found: {ArchiveName}");
+                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", ArchiveName));
                 throw new FileNotFoundException();
             }
             else
             {
                 string name = Path.GetFileName(ArchiveName);
-                Debug.LogLine($"[GzsLib] Reading archive contents: {name}");
+                Debug.LogLine(String.Format("[GzsLib] Reading archive contents: {0}", name));
                 using (FileStream archiveFile = new FileStream(ArchiveName, FileMode.Open))
                 {
                     List<string> archiveContents = new List<string>();
@@ -452,7 +452,7 @@ namespace SnakeBite.GzsTool
                 var path = Path.Combine(dataDir, qarFileName);
                 if (!File.Exists(path))
                 {
-                    Debug.LogLine($"[GzsLib] Could not find {path}");
+                    Debug.LogLine(String.Format("[GzsLib] Could not find {0}", path));
                 } else
                 {
                     var qarGameFiles = GetQarGameFiles(Path.Combine(dataDir, path));
@@ -495,7 +495,7 @@ namespace SnakeBite.GzsTool
         // Export QAR archive with specified parameters
         public static void WriteQarArchive(string FileName, string SourceDirectory, List<string> Files, uint Flags)
         {
-            Debug.LogLine($"[GzsLib] Writing {Path.GetFileName(FileName)}");
+            Debug.LogLine(String.Format("[GzsLib] Writing {0}", Path.GetFileName(FileName)));
             List<QarEntry> qarEntries = new List<QarEntry>();
             foreach (string s in Files)
             {
@@ -516,13 +516,13 @@ namespace SnakeBite.GzsTool
         {
             if (File.Exists(sourcePath))
             {
-                Debug.LogLine($"[GzsLib] Promoting {Path.GetFileName(sourcePath)} to {Path.GetFileName(destinationPath)} ({Tools.GetFileSizeKB(sourcePath)} KB)");
+                Debug.LogLine(String.Format("[GzsLib] Promoting {0} to {1} ({2} KB)", Path.GetFileName(sourcePath), Path.GetFileName(destinationPath), Tools.GetFileSizeKB(sourcePath)));
                 File.Delete(destinationPath);
                 File.Move(sourcePath, destinationPath);
             }
             else
             {
-                Debug.LogLine($"[GzsLib] {sourcePath} not found");
+                Debug.LogLine(String.Format("[GzsLib] {0} not found", sourcePath));
             }
         }
 

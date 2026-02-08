@@ -28,7 +28,7 @@ namespace SnakeBite
                 ModQarEntry qarEntry = gameData.GameQarEntries[i];
                 if (!GzsLib.IsExtensionValidForArchive(qarEntry.FilePath, ".dat"))
                 {
-                    Debug.LogLine($"[ValidateGameData] Found invalid file entry {qarEntry.FilePath} for archive {qarEntry.SourceName}", Debug.LogLevel.Basic);
+                    Debug.LogLine(String.Format("[ValidateGameData] Found invalid file entry {0} for archive {1}", qarEntry.FilePath, qarEntry.SourceName), Debug.LogLevel.Basic);
                     gameData.GameQarEntries.RemoveAt(i);
                     zeroFiles.Remove(qarEntry.FilePath);//DEBUGNOW VERIFY
                 }
@@ -39,7 +39,7 @@ namespace SnakeBite
                 ModFpkEntry fpkEntry = gameData.GameFpkEntries[i];
                 if (!GzsLib.IsExtensionValidForArchive(fpkEntry.FilePath, fpkEntry.FpkFile))
                 {
-                    Debug.LogLine($"[ValidateGameData] Found invalid file entry {fpkEntry.FilePath} for archive {fpkEntry.FpkFile}", Debug.LogLevel.Basic);
+                    Debug.LogLine(String.Format("[ValidateGameData] Found invalid file entry {0} for archive {1}", fpkEntry.FilePath, fpkEntry.FpkFile), Debug.LogLevel.Basic);
                     gameData.GameFpkEntries.RemoveAt(i);
                 }
             }
@@ -115,7 +115,7 @@ namespace SnakeBite
                 ClearSBGameDir();
                 CleanupFolders();
                 
-                mergeProcessor.ReportProgress(0, $"Migrating files to new archives ({Tools.GetFileSizeKB(ZeroPath, OnePath)} KB)");
+                mergeProcessor.ReportProgress(0, String.Format("Migrating files to new archives ({0} KB)", Tools.GetFileSizeKB(ZeroPath, OnePath)));
                 if (!MoveDatFiles()) //moves vanilla 00 files into 01, excluding foxpatch. 
                 {
                     Debug.LogLine("[DatMerge] Failed to complete archive migration. Cancelling...");
@@ -124,7 +124,7 @@ namespace SnakeBite
                     return;
                 }
 
-                mergeProcessor.ReportProgress(0, $"Modfying foxfs in chunk0.dat ({Tools.GetFileSizeKB(chunk0Path)} KB)");
+                mergeProcessor.ReportProgress(0, String.Format("Modfying foxfs in chunk0.dat ({0} KB)", Tools.GetFileSizeKB(chunk0Path)));
                 if (!ModifyFoxfs()) // adds lines to foxfs in chunk0.
                 {
                     Debug.LogLine("[ModifyFoxfs] Failed to complete Foxfs modification. Cancelling...");
@@ -580,7 +580,7 @@ namespace SnakeBite
 
         public static void CopyGameDirManagedFiles(string destinationDir)
         {
-            Debug.LogLine($"[SB_Build] Copying {Path.GetDirectoryName(GameDir)} to {Path.GetDirectoryName(destinationDir)}", Debug.LogLevel.Basic);
+            Debug.LogLine(String.Format("[SB_Build] Copying {0} to {1}", Path.GetDirectoryName(GameDir), Path.GetDirectoryName(destinationDir)), Debug.LogLevel.Basic);
             foreach (string externalFile in new SettingsManager(SnakeBiteSettings).GetModExternalFiles()) 
             {
                 string fileModPath = Tools.ToWinPath(externalFile);
@@ -597,7 +597,7 @@ namespace SnakeBite
             Debug.LogLine("[SB_Build] Promoting SB_Build Game Directory", Debug.LogLevel.Basic);
             if (!Directory.Exists(GameDirSB_Build))
             {
-                Debug.LogLine($"[SB_Build] Directory not found: {GameDirSB_Build}", Debug.LogLevel.Basic);
+                Debug.LogLine(String.Format("[SB_Build] Directory not found: {0}", GameDirSB_Build), Debug.LogLevel.Basic);
                 return;
             }
 
@@ -638,7 +638,7 @@ namespace SnakeBite
             Debug.LogLine("[SB_Build] Promoting SB_Build Game Directory", Debug.LogLevel.Basic);
             if (!Directory.Exists(GameDirBackup_Build))
             {
-                Debug.LogLine($"[SB_Build] Directory not found: {GameDirBackup_Build}", Debug.LogLevel.Basic);
+                Debug.LogLine(String.Format("[SB_Build] Directory not found: {0}", GameDirBackup_Build), Debug.LogLevel.Basic);
                 return;
             }
 
@@ -790,7 +790,7 @@ namespace SnakeBite
             {
                 if (game.GameQarEntries.Count(entry => Tools.CompareHashes(entry.FilePath, s)) == 0)
                 {
-                    Debug.LogLine($"[Cleanup] Adding missing {s}", Debug.LogLevel.Debug);
+                    Debug.LogLine(String.Format("[Cleanup] Adding missing {0}", s), Debug.LogLevel.Debug);
                     game.GameQarEntries.Add(new ModQarEntry() {
                         FilePath = Tools.ToQarPath(s),
                         SourceType = FileSource.System,

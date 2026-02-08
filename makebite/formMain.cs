@@ -184,7 +184,7 @@ namespace makebite
                     //tex better, but will be a breaking change for any authors used to the current output path\filename
                     //string folderName = Path.GetFileName(modPath.TrimEnd(Path.DirectorySeparatorChar));
                     //string parentPath = Directory.GetParent(modPath).ToString();
-                    //DoBuild($"{parentPath}\\{folderName}.mgsv");
+                    //DoBuild(String.Format("{0}\\{1}.mgsv", parentPath, folderName));
 
                     DoBuild(Path.Combine(modPath, "mod.mgsv"));
                     Application.Exit();    // build and exit

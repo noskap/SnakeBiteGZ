@@ -96,13 +96,13 @@ namespace SnakeBite
                 }
 
                 stopwatch.Stop();
-                Debug.LogLine($"[Install] Installation finished in {stopwatch.ElapsedMilliseconds} ms", Debug.LogLevel.Basic);
+                Debug.LogLine(String.Format("[Install] Installation finished in {0} ms", stopwatch.ElapsedMilliseconds), Debug.LogLevel.Basic);
                 return true;
             }
             catch (Exception e)
             {
                 stopwatch.Stop();
-                Debug.LogLine($"[Install] Installation failed at {stopwatch.ElapsedMilliseconds} ms", Debug.LogLevel.Basic);
+                Debug.LogLine(String.Format("[Install] Installation failed at {0} ms", stopwatch.ElapsedMilliseconds), Debug.LogLevel.Basic);
                 Debug.LogLine("[Install] Exception: " + e, Debug.LogLevel.Basic);
                 MessageBox.Show("An error has occurred during the installation process and SnakeBite could not install the selected mod(s).\nException: " + e, "Mod(s) could not be installed", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
@@ -143,9 +143,9 @@ namespace SnakeBite
             bool isAddingWMV = false; //ZIP: WMV Support
             foreach (string modFilePath in modFilePaths) 
             {
-                Debug.LogLine($"[Install] Installation started: {Path.GetFileName(modFilePath)}", Debug.LogLevel.Basic);
+                Debug.LogLine(String.Format("[Install] Installation started: {0}", Path.GetFileName(modFilePath)), Debug.LogLevel.Basic);
                 
-                Debug.LogLine($"[Install] Unzipping mod .mgsv ({Tools.GetFileSizeKB(modFilePath)} KB)", Debug.LogLevel.Basic);
+                Debug.LogLine(String.Format("[Install] Unzipping mod .mgsv ({0} KB)", Tools.GetFileSizeKB(modFilePath)), Debug.LogLevel.Basic);
                 unzipper.ExtractZip(modFilePath, "_extr", "(.*?)");
 
                 Debug.LogLine("[Install] Load mod metadata", Debug.LogLevel.Basic);
@@ -206,7 +206,7 @@ namespace SnakeBite
                 ModQarEntry qarEntry = modEntry.ModQarEntries[i];
                 if (!GzsLib.IsExtensionValidForArchive(qarEntry.FilePath, ".dat"))
                 {
-                    Debug.LogLine($"[ValidateModEntries] Found invalid file entry {qarEntry.FilePath} for archive {qarEntry.SourceName}", Debug.LogLevel.Basic);
+                    Debug.LogLine(String.Format("[ValidateModEntries] Found invalid file entry {0} for archive {1}", qarEntry.FilePath, qarEntry.SourceName), Debug.LogLevel.Basic);
                     modEntry.ModQarEntries.RemoveAt(i);
                 }
             }
@@ -216,7 +216,7 @@ namespace SnakeBite
                 ModFpkEntry fpkEntry = modEntry.ModFpkEntries[i];
                 if (!GzsLib.IsExtensionValidForArchive(fpkEntry.FilePath, fpkEntry.FpkFile))
                 {
-                    Debug.LogLine($"[ValidateModEntries] Found invalid file entry {fpkEntry.FilePath} for archive {fpkEntry.FpkFile}", Debug.LogLevel.Basic);
+                    Debug.LogLine(String.Format("[ValidateModEntries] Found invalid file entry {0} for archive {1}", fpkEntry.FilePath, fpkEntry.FpkFile), Debug.LogLevel.Basic);
                     modEntry.ModFpkEntries.RemoveAt(i);
                 }
             }

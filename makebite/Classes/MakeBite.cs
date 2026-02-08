@@ -78,7 +78,7 @@ namespace makebite
                     string FilePath = FileName.Substring(Folder.Length);
                     if (!GzsLib.IsExtensionValidForArchive(FileName, ".dat"))
                     {
-                        Debug.LogLine($"[BuildArchive] {FileName} is not a valid file for a .dat archive.");
+                        Debug.LogLine(String.Format("[BuildArchive] {0} is not a valid file for a .dat archive.", FileName));
                         continue;
                     }
 
@@ -152,13 +152,13 @@ namespace makebite
         /// <param name="fpkReferences"></param>
         /// <returns></returns>
         public static List<ModFpkEntry> BuildFpk(string sourceFpkFolder, string destFpkName, string rootDir, List<string> fpkReferences) {
-            SnakeBite.Debug.LogLine($"[BuildFpk] {sourceFpkFolder}.");
+            SnakeBite.Debug.LogLine(String.Format("[BuildFpk] {0}.", sourceFpkFolder));
 
             List<string> fpkFiles = new List<string>();
             List<ModFpkEntry> fpkList = new List<ModFpkEntry>();
             foreach (string fileName in Directory.GetFiles(sourceFpkFolder, "*.*", SearchOption.AllDirectories)) {
                 if (!GzsLib.IsExtensionValidForArchive(fileName, destFpkName)) {
-                    SnakeBite.Debug.LogLine($"[BuildFpk] {fileName} is not a valid file for a {Path.GetExtension(destFpkName)} archive.");
+                    SnakeBite.Debug.LogLine(String.Format("[BuildFpk] {0} is not a valid file for a {1} archive.", fileName, Path.GetExtension(destFpkName)));
                     continue;
                 }
                 string inQarName = fileName.Substring(sourceFpkFolder.Length).Replace("\\", "/");//tex actually fpk-internal name, but as fpks are subsets of qars then?
@@ -177,7 +177,7 @@ namespace makebite
 
         public static void BuildArchive(string SourceDir, ModEntry metaData, string outputFilePath)
         {
-            Debug.LogLine($"[BuildArchive] {SourceDir}.");
+            Debug.LogLine(String.Format("[BuildArchive] {0}.", SourceDir));
             HashingExtended.ReadDictionary();
             string buildDir = Directory.GetCurrentDirectory() + "\\_build";
             try
@@ -269,7 +269,7 @@ namespace makebite
                     {
                         if (!GzsLib.IsExtensionValidForArchive(file, fpkDir))
                         {
-                            Debug.LogLine($"[BuildArchive] {file} is not a valid file for a {Path.GetExtension(fpkDir)} archive.");
+                            Debug.LogLine(String.Format("[BuildArchive] {0} is not a valid file for a {1} archive.", file, Path.GetExtension(fpkDir)));
                             continue;
                         }
 
