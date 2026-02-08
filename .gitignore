@@ -235,3 +235,7 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+*.g0s
+SnakeBite/data_00.dat
+SnakeBite/data_02.dat
+SnakeBite/data_01
