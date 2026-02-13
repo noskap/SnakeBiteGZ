@@ -17,227 +17,236 @@ namespace SnakeBite
         [STAThread]
         private static void Main(string[] args)
         {
-            //if (Debugger.IsAttached == false) Debugger.Launch();//DEBUG
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            ICSharpCode.SharpZipLib.Zip.ZipConstants.DefaultCodePage = 437;
-            SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
-            bool updateQarFilenames = false;
-            if (Properties.Settings.Default.LastSBVersion == null || new Version(Properties.Settings.Default.LastSBVersion) < ModManager.GetSBVersion())
+            try
             {
-                if (Properties.Settings.Default.LastSBVersion != null)
+                //if (Debugger.IsAttached == false) Debugger.Launch();//DEBUG
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                ICSharpCode.SharpZipLib.Zip.ZipConstants.DefaultCodePage = 437;
+                SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
+                bool updateQarFilenames = false;
+                if (Properties.Settings.Default.LastSBVersion == null || new Version(Properties.Settings.Default.LastSBVersion) < ModManager.GetSBVersion())
                 {
-                    updateQarFilenames = true;
-                }
-                Properties.Settings.Default.Upgrade();
-            }
-
-            Properties.Settings.Default.LastSBVersion = ModManager.GetSBVersion().ToString();
-            Properties.Settings.Default.Save();
-
-            Debug.Clear();
-
-            Debug.LogLine(String.Format(
-                "SnakeBite {0}\n" +
-                "{1}\n" +
-                "-------------------------",
-                ModManager.GetSBVersion(),
-                Environment.OSVersion.VersionString));
-
-            // Delete old settings file
-            if (File.Exists(GamePaths.GameDir + "\\sbmods.xml"))
-            {
-                Debug.LogLine("Settings v0.7 or less detected, removing");
-                File.Delete(GamePaths.GameDir + "\\sbmods.xml");
-                MessageBox.Show("Due to fundamental changes from version 0.8 onwards, your settings have been reset. Please re-verify or restore the game files and run the setup wizard before continuing.", "Version Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-
-            bool showSetupWizard = true;
-
-            if (manager.SettingsExist() && manager.ValidInstallPath)
-            {
-                showSetupWizard = false;
-            }
-
-            // Show wizard on first run, if folder is invalid or settings out of date
-            while (showSetupWizard)
-            {
-                // show setup wizard
-                Debug.LogLine("[Setup] Starting Setup Wizard");
-                try
-                {
-                    SetupWizard.SetupWizard setupWizard = new SetupWizard.SetupWizard();
-                    var wizResult = setupWizard.ShowDialog();
-                    if (wizResult == DialogResult.Cancel) return;
-                    if (wizResult == DialogResult.OK) showSetupWizard = false;
-                }
-                catch (Exception e)
-                {
-                    Debug.LogLine("[Setup] Setup Wizard error: " + e.ToString());
-                }
-            }
-            manager = new SettingsManager(GamePaths.SnakeBiteSettings);
-
-
-            string InitLog = String.Format(
-                "MGS Install Folder: {0}\n" +
-                "MGS Version: {1}\n" +
-                "-------------------------",
-                Properties.Settings.Default.InstallPath,
-                ModManager.GetMGSVersion());
-
-            Debug.LogLine(InitLog, Debug.LogLevel.Basic);
-
-            // Process Command Line args
-            // Uninstall SnakeBite
-            if (args.Length == 1)
-            {
-                if (args[0] == "-completeuninstall")
-                {
-                    Debug.LogLine("Complete uninstall");
-                    // Restore backup and remove settings
-                    manager.DeleteSettings();
-                    BackupManager.RestoreOriginals();
-                    return;
-                }
-            }
-
-            // Parse command line arguments
-            bool doCmdLine = false;             // Process command line args?
-            bool closeApp = false;              // Close app after?
-            bool install = true;               // Install = true, uninstall = false
-            bool resetDatHash = false;          // Rehash dat file
-            bool skipConflictChecks = false;
-            bool skipCleanup = false;            // Skip CleanupDatabase
-            List<string> modPaths = new List<string>();
-            //tex: because of the fallthrough will default to install if given just a path, so you can drag .mgsv over snakebite.exe or put it in send-to menu.
-            if (args.Length > 0)
-            {
-                foreach (string arg in args)
-                {
-                    switch (arg.ToLower())
+                    if (Properties.Settings.Default.LastSBVersion != null)
                     {
-                        case "-i":
-                            install = true;
-                            break;
-
-                        case "-u":
-                            install = false;
-                            break;
-
-                        case "-d":
-                            resetDatHash = true;
-                            break;
-
-                        case "-x":
-                            closeApp = true;
-                            break;
-
-                        case "-s":
-                            skipCleanup = true;
-                            break;
-
-                        case "-c":
-                            skipConflictChecks = true;
-                            break;
-
-                        default:
-                            modPaths.Add(arg);
-                            doCmdLine = true;
-                            break;
+                        updateQarFilenames = true;
                     }
+                    Properties.Settings.Default.Upgrade();
                 }
-            }
-            // Update dat hash in settings
-            if (resetDatHash)
-            {
-                Debug.LogLine("Resetting dat hash");
-                manager.UpdateDatHash();
-            }
-            if(ModManager.GetMGSVersion() > SettingsManager.IntendedGameVersion)
-            {
-                var contSB = MessageBox.Show("Due to a recent game update, this version of SnakeBite is outdated, and some features will not function properly.\n\nIt is highly recommended that you do not continue, and update to the latest version of Snakebite when it becomes available.\n\nWould you still like to continue? ", "Game Version Update", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-                if (contSB == DialogResult.No)
-                    return;
-            }
-            if (!File.Exists(GamePaths.ZeroPath) || !File.Exists(GamePaths.OnePath))
-            {
-                MessageBox.Show(string.Format("Critical Error: SnakeBite could not locate critical game data! \n\n({0})\nand/or\n({1}).\n\nRestore your game files with backups, MGSVPreset files, or revalidating through Steam!", GamePaths.ZeroPath, GamePaths.OnePath), "Archive(s) Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-            else
-            {
-                try
+
+                Properties.Settings.Default.LastSBVersion = ModManager.GetSBVersion().ToString();
+                Properties.Settings.Default.Save();
+
+                Debug.Clear();
+
+                Debug.LogLine(String.Format(
+                    "SnakeBite {0}\n" +
+                    "{1}\n" +
+                    "-------------------------",
+                    ModManager.GetSBVersion(),
+                    Environment.OSVersion.VersionString));
+
+                // Delete old settings file
+                if (File.Exists(GamePaths.GameDir + "\\sbmods.xml"))
                 {
-                    bool checkDat = false;
+                    Debug.LogLine("Settings v0.7 or less detected, removing");
+                    File.Delete(GamePaths.GameDir + "\\sbmods.xml");
+                    MessageBox.Show("Due to fundamental changes from version 0.8 onwards, your settings have been reset. Please re-verify or restore the game files and run the setup wizard before continuing.", "Version Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
 
-                    if (updateQarFilenames)
-                        manager.updateQarFileNames();
+                bool showSetupWizard = true;
 
-                    checkDat = manager.ValidateDatHash();
+                if (manager.SettingsExist() && manager.ValidInstallPath)
+                {
+                    showSetupWizard = false;
+                }
 
-                    if (!checkDat || manager.IsVanilla0001DatHash())
+                // Show wizard on first run, if folder is invalid or settings out of date
+                while (showSetupWizard)
+                {
+                    // show setup wizard
+                    Debug.LogLine("[Setup] Starting Setup Wizard");
+                    try
                     {
-                        if (manager.IsVanilla0001DatHash() || manager.IsVanilla0001Size())
-                        {
-                            MessageBox.Show("Fresh 00.dat/01.dat detected. The setup wizard will now run.", "Game data hash mismatch", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        }
-                        else
-                        {
-                            MessageBox.Show("Game archive has been modified. The setup wizard will now run.", "Game data hash mismatch", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        }
-
                         SetupWizard.SetupWizard setupWizard = new SetupWizard.SetupWizard();
-                        setupWizard.ShowDialog();
+                        var wizResult = setupWizard.ShowDialog();
+                        if (wizResult == DialogResult.Cancel) return;
+                        if (wizResult == DialogResult.OK) showSetupWizard = false;
                     }
-                    else if (!BackupManager.c7t7Exist()) // chunk7 and/or texture7 are missing, despite the dathash validating.
+                    catch (Exception e)
                     {
-                        MessageBox.Show("To continue, SnakeBite must build a_chunk7.dat and a_texture7.dat from your current archives. The setup wizard will now run.", "Setup required", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        SetupWizard.SetupWizard setupWizard = new SetupWizard.SetupWizard();
-                        setupWizard.ShowDialog();
+                        Debug.LogLine("[Setup] Setup Wizard error: " + e.ToString());
                     }
                 }
-                catch (InvalidOperationException e)
+                manager = new SettingsManager(GamePaths.SnakeBiteSettings);
+
+
+                string InitLog = String.Format(
+                    "MGS Install Folder: {0}\n" +
+                    "MGS Version: {1}\n" +
+                    "-------------------------",
+                    Properties.Settings.Default.InstallPath,
+                    ModManager.GetMGSVersion());
+
+                Debug.LogLine(InitLog, Debug.LogLevel.Basic);
+
+                // Process Command Line args
+                // Uninstall SnakeBite
+                if (args.Length == 1)
                 {
-                    if (File.Exists(GamePaths.OnePath) && File.Exists(GamePaths.ZeroPath))
+                    if (args[0] == "-completeuninstall")
                     {
-                        if (manager.IsVanilla0001Size())
+                        Debug.LogLine("Complete uninstall");
+                        // Restore backup and remove settings
+                        manager.DeleteSettings();
+                        BackupManager.RestoreOriginals();
+                        return;
+                    }
+                }
+
+                // Parse command line arguments
+                bool doCmdLine = false;             // Process command line args?
+                bool closeApp = false;              // Close app after?
+                bool install = true;               // Install = true, uninstall = false
+                bool resetDatHash = false;          // Rehash dat file
+                bool skipConflictChecks = false;
+                bool skipCleanup = false;            // Skip CleanupDatabase
+                List<string> modPaths = new List<string>();
+                //tex: because of the fallthrough will default to install if given just a path, so you can drag .mgsv over snakebite.exe or put it in send-to menu.
+                if (args.Length > 0)
+                {
+                    foreach (string arg in args)
+                    {
+                        switch (arg.ToLower())
                         {
-                            File.Delete(GamePaths.SnakeBiteSettings);
+                            case "-i":
+                                install = true;
+                                break;
+
+                            case "-u":
+                                install = false;
+                                break;
+
+                            case "-d":
+                                resetDatHash = true;
+                                break;
+
+                            case "-x":
+                                closeApp = true;
+                                break;
+
+                            case "-s":
+                                skipCleanup = true;
+                                break;
+
+                            case "-c":
+                                skipConflictChecks = true;
+                                break;
+
+                            default:
+                                modPaths.Add(arg);
+                                doCmdLine = true;
+                                break;
+                        }
+                    }
+                }
+                // Update dat hash in settings
+                if (resetDatHash)
+                {
+                    Debug.LogLine("Resetting dat hash");
+                    manager.UpdateDatHash();
+                }
+                if (ModManager.GetMGSVersion() > SettingsManager.IntendedGameVersion)
+                {
+                    var contSB = MessageBox.Show("Due to a recent game update, this version of SnakeBite is outdated, and some features will not function properly.\n\nIt is highly recommended that you do not continue, and update to the latest version of Snakebite when it becomes available.\n\nWould you still like to continue? ", "Game Version Update", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    if (contSB == DialogResult.No)
+                        return;
+                }
+                if (!File.Exists(GamePaths.ZeroPath) || !File.Exists(GamePaths.OnePath))
+                {
+                    MessageBox.Show(string.Format("Critical Error: SnakeBite could not locate critical game data! \n\n({0})\nand/or\n({1}).\n\nRestore your game files with backups, MGSVPreset files, or revalidating through Steam!", GamePaths.ZeroPath, GamePaths.OnePath), "Archive(s) Not Found", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                else
+                {
+                    try
+                    {
+                        bool checkDat = false;
+
+                        if (updateQarFilenames)
+                            manager.updateQarFileNames();
+
+                        checkDat = manager.ValidateDatHash();
+
+                        if (!checkDat || manager.IsVanilla0001DatHash())
+                        {
+                            if (manager.IsVanilla0001DatHash() || manager.IsVanilla0001Size())
+                            {
+                                MessageBox.Show("Fresh 00.dat/01.dat detected. The setup wizard will now run.", "Game data hash mismatch", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+                            else
+                            {
+                                MessageBox.Show("Game archive has been modified. The setup wizard will now run.", "Game data hash mismatch", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                            }
+
+                            SetupWizard.SetupWizard setupWizard = new SetupWizard.SetupWizard();
+                            setupWizard.ShowDialog();
+                        }
+                        else if (!BackupManager.c7t7Exist()) // chunk7 and/or texture7 are missing, despite the dathash validating.
+                        {
+                            MessageBox.Show("To continue, SnakeBite must build a_chunk7.dat and a_texture7.dat from your current archives. The setup wizard will now run.", "Setup required", MessageBoxButtons.OK, MessageBoxIcon.Information);
                             SetupWizard.SetupWizard setupWizard = new SetupWizard.SetupWizard();
                             setupWizard.ShowDialog();
                         }
                     }
-                    MessageBox.Show(string.Format("Critical Error: SnakeBite could not read settings data! \n\n({0})\n\nRestore your game files with backups, MGSVPreset files, or revalidating through Steam!", GamePaths.SnakeBiteSettings), "Failed To Read Settings", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    Debug.LogLine("Error: ValidateDatHash failed: " + e);
-                } 
-            }
-
-            if (doCmdLine)
-            {
-                Debug.LogLine("Doing cmd line args");
-                string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-                Directory.SetCurrentDirectory(exeDir);
-
-                formMods ModForm = new formMods();
-                ModForm.Show();
-                ModForm.Hide();
-                if (install)
-                {
-                    ModForm.ProcessInstallMod(modPaths, skipConflictChecks, skipCleanup); // install mod
-                } else
-                {
-                    // uninstall
-                    ModForm.ProcessUninstallMod(modPaths, skipCleanup); // uninstall mod
+                    catch (InvalidOperationException e)
+                    {
+                        if (File.Exists(GamePaths.OnePath) && File.Exists(GamePaths.ZeroPath))
+                        {
+                            if (manager.IsVanilla0001Size())
+                            {
+                                File.Delete(GamePaths.SnakeBiteSettings);
+                                SetupWizard.SetupWizard setupWizard = new SetupWizard.SetupWizard();
+                                setupWizard.ShowDialog();
+                            }
+                        }
+                        MessageBox.Show(string.Format("Critical Error: SnakeBite could not read settings data! \n\n({0})\n\nRestore your game files with backups, MGSVPreset files, or revalidating through Steam!", GamePaths.SnakeBiteSettings), "Failed To Read Settings", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        Debug.LogLine("Error: ValidateDatHash failed: " + e);
+                    }
                 }
-                ModForm.Dispose();
 
-                if (closeApp) return;
+                if (doCmdLine)
+                {
+                    Debug.LogLine("Doing cmd line args");
+                    string exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                    Directory.SetCurrentDirectory(exeDir);
+
+                    formMods ModForm = new formMods();
+                    ModForm.Show();
+                    ModForm.Hide();
+                    if (install)
+                    {
+                        ModForm.ProcessInstallMod(modPaths, skipConflictChecks, skipCleanup); // install mod
+                    }
+                    else
+                    {
+                        // uninstall
+                        ModForm.ProcessUninstallMod(modPaths, skipCleanup); // uninstall mod
+                    }
+                    ModForm.Dispose();
+
+                    if (closeApp) return;
+                }
+
+                if (Properties.Settings.Default.SkipLauncher)
+                    Application.Run(new formMods());
+                else
+                    Application.Run(new formLauncher());
+            } 
+            catch (Exception e)
+            {
+                File.WriteAllText("crash_log.txt", e.ToString());
+                MessageBox.Show("SnakeBite Crashed! Log saved to crash_log.txt\n\n" + e.Message);
             }
-            
-            if (Properties.Settings.Default.SkipLauncher)
-                Application.Run(new formMods());
-            else
-                Application.Run(new formLauncher());
         }
     }
 }

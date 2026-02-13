@@ -56,6 +56,9 @@ namespace SnakeBite.SetupWizard
                     break;
 
                 case 1:
+                    Properties.Settings.Default.InstallPath = findInstallPage.InstallPath;
+                    Properties.Settings.Default.Save();
+
                     manager = new SettingsManager(GamePaths.SnakeBiteSettings);
                     if (!manager.ValidInstallPath)
                     {

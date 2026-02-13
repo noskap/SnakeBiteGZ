@@ -16,6 +16,9 @@ namespace SnakeBite.GzsTool
 
         public static uint zeroFlags = 3150304; // Keep flags for reference, though CLI handles repacking via XML
         public static uint oneFlags = 3150048;
+        public static uint chunk0Flags = 3150304; // Re-use zeroFlags for now
+        public static uint chunk7Flags = 3150304;
+        public static uint texture7Flags = 3150304;
 
         private static Dictionary<string, List<string>> archiveExtensions = new Dictionary<string, List<string>> {
             {"dat",new List<string> { // TPP legacy
@@ -268,9 +271,9 @@ namespace SnakeBite.GzsTool
         public static void LoadDictionaries()
         {
             Debug.LogLine("[GzsLib] Loading base dictionaries");
-            Hashing.ReadDictionary("qar_dictionary.txt"); // Assuming we have one for GZ
-            Hashing.ReadDictionary("gzs_dictionary.txt"); // GzsTool v0.2 might rely on this?
-            Hashing.ReadMd5Dictionary("fpk_dictionary.txt");
+            //Hashing.ReadDictionary("qar_dictionary.txt"); // Assuming we have one for GZ
+            //Hashing.ReadDictionary("gzs_dictionary.txt"); // GzsTool v0.2 might rely on this?
+            //Hashing.ReadMd5Dictionary("fpk_dictionary.txt");
             HashingExtended.ReadDictionary();
 
 #if SNAKEBITE
@@ -284,7 +287,7 @@ namespace SnakeBite.GzsTool
             SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
             var QarNames = manager.GetModQarFiles(true);
             File.WriteAllLines("mod_qar_dict.txt", QarNames);
-            Hashing.ReadDictionary("mod_qar_dict.txt");
+            HashingExtended.ReadDictionary("mod_qar_dict.txt"); // Was Hashing.ReadDictionary
         }
 
         public static void LoadModDictionary(ModEntry modEntry)
@@ -297,7 +300,7 @@ namespace SnakeBite.GzsTool
                 qarNames.Add(fileName);
             }
             File.WriteAllLines("mod_qar_dict.txt", qarNames);
-            Hashing.ReadDictionary("mod_qar_dict.txt");
+            HashingExtended.ReadDictionary("mod_qar_dict.txt");
         }
 
         public static List<Dictionary<ulong, GameFile>> ReadBaseData()

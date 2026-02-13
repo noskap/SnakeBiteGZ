@@ -308,7 +308,7 @@ namespace SnakeBite
                 string installPath = Properties.Settings.Default.InstallPath;
                 if (Directory.Exists(installPath))
                 {
-                    if (File.Exists(String.Format("{0}\\MGSVTPP.exe", installPath)))
+                    if (File.Exists(String.Format("{0}\\MgsGroundZeroes.exe", installPath)))
                     {
                         return true;
                     }

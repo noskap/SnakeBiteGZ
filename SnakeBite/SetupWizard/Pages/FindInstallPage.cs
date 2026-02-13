@@ -14,6 +14,12 @@ namespace SnakeBite.SetupWizard
                 textInstallPath.Text = Properties.Settings.Default.InstallPath;
         }
 
+        public string InstallPath
+        {
+            get { return textInstallPath.Text; }
+            set { textInstallPath.Text = value; }
+        }
+
         private void buttonValidate_Click(object sender, EventArgs e)
         {
             //var doValidate = MessageBox.Show("SnakeBite will close the Steam validation window automatically when ready, please do not cancel or close the Steam window.", "SnakeBite", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
@@ -76,7 +82,7 @@ namespace SnakeBite.SetupWizard
             findMGSV.Filter = "Metal Gear Solid V: Ground Zeroes|MgsGroundZeroes.exe";
             if (findMGSV.ShowDialog() == DialogResult.OK)
             {
-                textBoxInstallPath.Text = Path.GetDirectoryName(findMGSV.FileName);
+                textInstallPath.Text = Path.GetDirectoryName(findMGSV.FileName);
             }
         }
     }
