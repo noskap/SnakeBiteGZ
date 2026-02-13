@@ -34,7 +34,7 @@ namespace SnakeBite
             }
             else
             {
-                Debug.LogLine("[Uninstall] Skipping RevertChanges.MGSVPreset Save", Debug.LogLevel.Basic);
+                Debug.LogLine("[Uninstall] Skipping RevertChanges.GZPreset Save", Debug.LogLevel.Basic);
             }
 
             GzsLib.LoadDictionaries();

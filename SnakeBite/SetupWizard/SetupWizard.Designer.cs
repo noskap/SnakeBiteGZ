@@ -91,7 +91,7 @@
             this.Name = "SetupWizard";
             this.ShowIcon = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "SnakeBite Setup";
+            this.Text = "SnakeBiteGZ Setup";
             this.Load += new System.EventHandler(this.formSetupWizard_Load);
             this.ResumeLayout(false);
 

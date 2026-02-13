@@ -37,13 +37,13 @@ namespace makebite
         public static List<string> ListFpkFolders(string PathName)
         {
             List<string> ListFpkFolders = new List<string>();
-            foreach (string Directory in Directory.GetDirectories(PathName, "*.*", SearchOption.AllDirectories))
+            foreach (string dir in Directory.GetDirectories(PathName, "*.*", SearchOption.AllDirectories))
             {
-                string FolderName = Directory.Substring(Directory.LastIndexOf("\\") + 1);
+                string FolderName = dir.Substring(dir.LastIndexOf("\\") + 1);
                 if (FolderName.Contains("_"))
                 {
                     string FolderType = FolderName.Substring(FolderName.LastIndexOf("_") + 1).ToLower();
-                    if (FolderType == "fpk" || FolderType == "fpkd") ListFpkFolders.Add(Directory);
+                    if (FolderType == "fpk" || FolderType == "fpkd") ListFpkFolders.Add(dir);
                 }
             }
             return ListFpkFolders;
@@ -55,19 +55,19 @@ namespace makebite
             List<string> ListQarFiles = new List<string>();
 
             // Get a list of all folders to check for files (no _fpk/_fpkd)
-            foreach (string Directory in Directory.GetDirectories(PathName, "*.*", SearchOption.AllDirectories))
+            foreach (string dir in Directory.GetDirectories(PathName, "*.*", SearchOption.AllDirectories))
             {
-                if (IsArchiveFolder(PathName, Directory))
+                if (IsArchiveFolder(PathName, dir))
                 {
                     continue;
                 }
 
-                if (Directory.Substring(PathName.Length).Contains(ExternalDirName))// tex KLUDGE ignore MGS_TPP 
+                if (dir.Substring(PathName.Length).Contains(ExternalDirName))// tex KLUDGE ignore MGS_TPP 
                 {
                     continue;
                 }
 
-                ListQarFolders.Add(Directory);
+                ListQarFolders.Add(dir);
             }
             ListQarFolders.Add(PathName);
             // Check all folders for files
@@ -99,19 +99,19 @@ namespace makebite
             List<string> ListFiles = new List<string>();
 
             // Get a list of all folders to check for files (no _fpk/_fpkd)
-            foreach (string Directory in Directory.GetDirectories(PathName, "*.*", SearchOption.AllDirectories))
+            foreach (string dir in Directory.GetDirectories(PathName, "*.*", SearchOption.AllDirectories))
             {
-                if (IsArchiveFolder(PathName, Directory))
+                if (IsArchiveFolder(PathName, dir))
                 {
                     continue;
                 }
 
-                if (!Directory.Substring(PathName.Length).Contains(ExternalDirName)) 
+                if (!dir.Substring(PathName.Length).Contains(ExternalDirName)) 
                 {
                     continue;
                 }
 
-                ListFolders.Add(Directory);
+                ListFolders.Add(dir);
             }
 
             // Check all folders for files

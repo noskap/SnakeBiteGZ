@@ -85,7 +85,7 @@ namespace SnakeBite
             OpenFileDialog openModFile = new OpenFileDialog();
             List<string> ModNames = new List<string>();
 
-            openModFile.Filter = "MGSV Mod Files|*.mgsv|All Files|*.*";
+            openModFile.Filter = "SnakeBite Mod Files|*.mgsv|All Files|*.*";
             openModFile.Multiselect = true;
             DialogResult ofdResult = openModFile.ShowDialog();
             if (ofdResult != DialogResult.OK) return;
@@ -254,19 +254,19 @@ namespace SnakeBite
                     Debug.LogLine("Launching game...", Debug.LogLevel.Basic);
                     try
                     {
-                        Process.Start(GamePaths.GameDir + "\\mgsvtpp.exe");
+                        Process.Start(GamePaths.GameDir + "\\MgsGroundZeroes.exe");
                         if (Properties.Settings.Default.CloseSnakeBiteOnLaunch)
                             Application.Exit();
                     }
                     catch
                     {
-                        Debug.LogLine("Failed to run mgsvtpp.exe", Debug.LogLevel.Basic);
+                        Debug.LogLine("Failed to run MgsGroundZeroes.exe", Debug.LogLevel.Basic);
                     }
 
                 }
                 else
                 {
-                    MessageBox.Show("Unable to locate mgsvtpp.exe. Please check the MGSV install path and try again.", "Error launching MGSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Unable to locate MgsGroundZeroes.exe. Please check the MGSV install path and try again.", "Error launching Ground Zeroes", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
@@ -280,7 +280,7 @@ namespace SnakeBite
         private void SavePreset()
         {
             SaveFileDialog savePreset = new SaveFileDialog();
-            savePreset.Filter = "MGSV Preset File|*.MGSVPreset";
+            savePreset.Filter = "GZ Preset File|*.GZPreset";
             DialogResult saveResult = savePreset.ShowDialog();
             if (saveResult != DialogResult.OK) return;
 

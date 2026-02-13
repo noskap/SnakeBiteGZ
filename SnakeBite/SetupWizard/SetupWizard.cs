@@ -82,11 +82,11 @@ namespace SnakeBite.SetupWizard
 
                 case 2:
                     manager = new SettingsManager(GamePaths.SnakeBiteSettings);
-                    if (!(manager.IsVanilla0001Size() || manager.IsVanilla0001DatHash()) && (SettingsManager.IntendedGameVersion >= ModManager.GetMGSVersion())) // not the right 00/01 and there hasn't been a game update
+                    if (!(manager.IsVanillaG0sSize() || manager.IsVanillaG0sHash()) && (SettingsManager.IntendedGameVersion >= ModManager.GetMGSVersion())) // not the right 00/01 and there hasn't been a game update
                     {
                         var overWrite = MessageBox.Show(string.Format("Your existing game data contains unexpected filesizes, and is likely already modified or predates Game Version {0}." +
                             "\n\nIt is recommended that you do NOT store these files as backups, unless you are absolutely certain that they can reliably restore your game to a safe state!" +
-                            "\n\nAre you sure you want to save these as backup data?", SettingsManager.IntendedGameVersion), "Unexpected 00.dat / 01.dat Filesizes", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                            "\n\nAre you sure you want to save these as backup data?", SettingsManager.IntendedGameVersion), "Unexpected data_00.g0s / data_01.g0s Filesizes", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                         if (overWrite != DialogResult.Yes) return;
                     }
 
@@ -96,7 +96,7 @@ namespace SnakeBite.SetupWizard
                     {
                         if (SettingsManager.IntendedGameVersion < ModManager.GetMGSVersion()) //A recent update has occurred and the user should probably create new backups
                         {
-                            overWriteMessage = (string.Format("Some backup data already exists. Since this version of SnakeBite is intended for MGSV Version {0} and is now MGSV Version {1}, it is recommended that you overwrite your old backup files with new data.", SettingsManager.IntendedGameVersion, ModManager.GetMGSVersion()) +
+                            overWriteMessage = (string.Format("Some backup data already exists. Since this version of SnakeBite is intended for Ground Zeroes Version {0} and is now Ground Zeroes Version {1}, it is recommended that you overwrite your old backup files with new data.", SettingsManager.IntendedGameVersion, ModManager.GetMGSVersion()) +
                                 "\n\nContinue?");
                         }
                         else

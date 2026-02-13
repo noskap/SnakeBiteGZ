@@ -234,24 +234,24 @@ namespace SnakeBite
             return settings.MGSVersion.AsVersion();
         }
 
-        public void UpdateDatHash()
+        public void UpdateG0sHash()
         {
             Settings settings = new Settings();
             settings.LoadFrom(xmlFilePath);
              
-            // Hash 01.dat and update settings file
-            string datHash = Tools.GetMd5Hash(GamePaths.ZeroPath) + Tools.GetMd5Hash(GamePaths.OnePath);
-            settings.GameData.DatHash = datHash;
-            Debug.LogLine(String.Format("[UpdateDatHash] Updated 00/01 dat hash to: {0}", datHash), Debug.LogLevel.All);
+            // Hash 00/01.g0s and update settings file
+            string g0sHash = Tools.GetMd5Hash(GamePaths.ZeroPath) + Tools.GetMd5Hash(GamePaths.OnePath);
+            settings.GameData.G0sHash = g0sHash;
+            Debug.LogLine(String.Format("[UpdateG0sHash] Updated data_00/01.g0s hash to: {0}", g0sHash), Debug.LogLevel.All);
             settings.SaveTo(xmlFilePath);
         }
 
-        public bool IsVanilla0001DatHash() //shouldn't be in settingsmanager
+        public bool IsVanillaG0sHash() //shouldn't be in settingsmanager
         {
             return vanillaDatHash.Equals(Tools.GetMd5Hash(GamePaths.ZeroPath) + Tools.GetMd5Hash(GamePaths.OnePath));
         }
 
-        public bool IsVanilla0001Size() //shouldn't be in settingsmanager
+        public bool IsVanillaG0sSize() //shouldn't be in settingsmanager
         {
             var zeroSize = new System.IO.FileInfo(GamePaths.ZeroPath).Length;
             var oneSize = new System.IO.FileInfo(GamePaths.OnePath).Length;
@@ -280,23 +280,23 @@ namespace SnakeBite
             settings.SaveTo(xmlFilePath);
         }
 
-        internal bool ValidateDatHash()
+        internal bool ValidateG0sHash()
         {
             if (File.Exists(xmlFilePath)) {
-                string datHash = Tools.GetMd5Hash(GamePaths.ZeroPath) + Tools.GetMd5Hash(GamePaths.OnePath);
-                string hashOld = GetGameData().DatHash;
-                if (datHash == hashOld)
+                string g0sHash = Tools.GetMd5Hash(GamePaths.ZeroPath) + Tools.GetMd5Hash(GamePaths.OnePath);
+                string hashOld = GetGameData().G0sHash;
+                if (g0sHash == hashOld)
                 {
-                    Debug.LogLine(String.Format("[ValidateDatHash] 00/01 dat hash match:\n{0} (Found Hash) == {1} (Expected Hash)", datHash, hashOld), Debug.LogLevel.All);
+                    Debug.LogLine(String.Format("[ValidateG0sHash] data_00/01.g0s hash match:\n{0} (Found Hash) == {1} (Expected Hash)", g0sHash, hashOld), Debug.LogLevel.All);
                     return true;
                 }
                 else
                 {
-                    Debug.LogLine(String.Format("[ValidateDatHash] 00/01 dat hash mismatch:\n{0} (Found Hash) != {1} (Expected Hash)", datHash, hashOld), Debug.LogLevel.All);
+                    Debug.LogLine(String.Format("[ValidateG0sHash] data_00/01.g0s hash mismatch:\n{0} (Found Hash) != {1} (Expected Hash)", g0sHash, hashOld), Debug.LogLevel.All);
                     return false;
                 }
             }
-            Debug.LogLine(String.Format("[ValidateDatHash] could not find snakebite.xml"), Debug.LogLevel.All);
+            Debug.LogLine(String.Format("[ValidateG0sHash] could not find snakebite.xml"), Debug.LogLevel.All);
             return false;
         }
 
@@ -393,8 +393,8 @@ namespace SnakeBite
             GameFileEntries = new List<ModFileEntry>();
         }
 
-        [XmlAttribute("DatHash")]
-        public string DatHash { get; set; }
+        [XmlAttribute("G0sHash")]
+        public string G0sHash { get; set; }
 
         //Entries of files in mod qar (ex 00,01.dat)
         [XmlArray("QarEntries")]

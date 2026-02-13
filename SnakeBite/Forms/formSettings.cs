@@ -43,14 +43,14 @@ namespace SnakeBite
 
         private void buttonRestoreOriginals_Click(object sender, EventArgs e)
         {
-            var restoreData = MessageBox.Show("Your saved backup files will be restored, and any SnakeBite settings and mods will be completely removed.\n\nAre you sure you want to continue?", "SnakeBite", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+            var restoreData = MessageBox.Show("Your saved backup files will be restored, and any SnakeBite gzsettings and mods will be completely removed.\n\nAre you sure you want to continue?", "SnakeBite", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
             if (restoreData != DialogResult.Yes) return;
 
             BackupManager.RestoreOriginals();
             try
             {
                 manager.DeleteSettings();
-                MessageBox.Show("Backups restored. SnakeBite will now close.", "SnakeBite", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show("Backups restored. SnakeBite gzwill now close.", "SnakeBite", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
             catch { }
             Application.Exit();
@@ -86,21 +86,21 @@ namespace SnakeBite
             Process.Start(labelNexusLink.Text);
         }
 
-        private void buttonFindMGSV_Click(object sender, EventArgs e)
+        private void buttonFindMGSVGZ_Click(object sender, EventArgs e)
         {
-            OpenFileDialog findMGSV = new OpenFileDialog();
-            findMGSV.Filter = "Metal Gear Solid V|MGSVTPP.exe";
-            DialogResult findResult = findMGSV.ShowDialog();
+            OpenFileDialog findMGSVGZ = new OpenFileDialog();
+            findMGSVGZ.Filter = "Ground Zeroes|MgsGroundZeroes.exe";
+            DialogResult findResult = findMGSVGZ.ShowDialog();
             if (findResult != DialogResult.OK) return;
 
-            string filePath = findMGSV.FileName.Substring(0, findMGSV.FileName.LastIndexOf("\\"));
+            string filePath = findMGSVGZ.FileName.Substring(0, findMGSVGZ.FileName.LastIndexOf("\\"));
             if (filePath != textInstallPath.Text)
             {
                 textInstallPath.Text = filePath;
                 Properties.Settings.Default.InstallPath = filePath;
                 Properties.Settings.Default.Save();
-                MessageBox.Show("SnakeBite will now restart.", "SnakeBite", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                System.Diagnostics.Process.Start("SnakeBite.exe");
+                MessageBox.Show("SnakeBiteGZ will now restart.", "SnakeBiteGZ", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                System.Diagnostics.Process.Start("SnakeBiteGZ.exe");
                 Application.Exit();
             }
         }

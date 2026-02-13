@@ -30,7 +30,7 @@ namespace SnakeBite
             }
             else
             {
-                Debug.LogLine("[Install] Skipping RevertChanges.MGSVPreset Save", Debug.LogLevel.Basic);
+                Debug.LogLine("[Install] Skipping RevertChanges.GZPreset Save", Debug.LogLevel.Basic);
             }
             File.Copy(GamePaths.SnakeBiteSettings, GamePaths.SnakeBiteSettings + GamePaths.build_ext, true); // creates a settings sb_build
 

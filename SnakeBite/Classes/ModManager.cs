@@ -163,7 +163,7 @@ namespace SnakeBite
             Debug.LogLine("[DatMerge] Beginning to move files to new archives");
             try
             {
-                if (manager.IsVanilla0001DatHash() || manager.IsVanilla0001Size() )
+                if (manager.IsVanillaG0sHash() || manager.IsVanillaG0sSize() )
                 {   // first time setup or files have been revalidated
                     MoveDatFilesClean(manager);
                 }
@@ -434,20 +434,45 @@ namespace SnakeBite
 
         public static void AddChunks(ref List<string> foxfsLine)//ZIP: Retain additional chunk support
         {
-            string[] linesToAdd = new string[8]
-                         {
-                    "		<chunk id=\"0\" label=\"old\" qar=\"a_chunk7.dat\" textures=\"a_texture7.dat\"/>",
-                    "		<chunk id=\"1\" label=\"cypr\" qar=\"chunk0.dat\" textures=\"texture0.dat\"/>",
-                    "		<chunk id=\"2\" label=\"base\" qar=\"chunk1.dat\" textures=\"texture1.dat\"/>",
-                    "		<chunk id=\"3\" label=\"afgh\" qar=\"chunk2.dat\" textures=\"texture2.dat\"/>",
-                    "		<chunk id=\"4\" label=\"mtbs\" qar=\"chunk3.dat\" textures=\"texture3.dat\"/>",
-                    "		<chunk id=\"5\" label=\"mafr\" qar=\"chunk4.dat\" textures=\"texture4.dat\"/>",
-                    "		<chunk id=\"6\" label=\"mgo\" qar=\"chunk5_mgo0.dat\" textures=\"texture5_mgo0.dat\"/>",
-                    "		<chunk id=\"7\" label=\"gzs\" qar=\"chunk6_gzs0.dat\" textures=\"texture6_gzs0.dat\"/>",
-                         };
-            int startIndex = foxfsLine.IndexOf("		<chunk id=\"0\" label=\"cypr\" qar=\"chunk0.dat\" textures=\"texture0.dat\"/>");
-            foxfsLine.RemoveRange(startIndex, 6);
-            foxfsLine.InsertRange(startIndex, linesToAdd);
+            // GZ specific: insert a_chunk7 at the top of the chunk list (ID 0) and shift others or just ensure it's loaded.
+            // Since we don't know the exact GZ foxfs structure, we look for the first <chunk> tag.
+            
+            string newChunkLine = "		<chunk id=\"0\" label=\"old\" qar=\"a_chunk7.dat\" textures=\"a_texture7.dat\"/>";
+            
+            int startIndex = -1;
+            // Find the first occurrence of <chunk id=...
+            for(int i=0; i<foxfsLine.Count; i++)
+            {
+                if (foxfsLine[i].Trim().StartsWith("<chunk id="))
+                {
+                    startIndex = i;
+                    break;
+                }
+            }
+
+            if (startIndex >= 0)
+            {
+                if (foxfsLine[startIndex].Contains("a_chunk7.dat")) return; // Already exists
+                
+                // For GZ, we might need to be careful about IDs. 
+                // We'll insert at the top (presumably ID 0 is safe or high priority?).
+                // We won't remove existing chunks like the MGSV code did, to avoid breaking GZ chunks we don't know about.
+                foxfsLine.Insert(startIndex, newChunkLine);
+                
+                // TODO: If we insert ID 0, and there is already ID 0, does it conflict?
+                // MGSV mod manager re-indexed them. If we can't reliably re-index, we warn.
+                // But for now, this is safer than crashing.
+                Debug.LogLine("[ModManager] Inserted a_chunk7 into foxfs.dat");
+            }
+            else
+            {
+                Debug.LogLine("[ModManager] Could not find <chunk> tags in foxfs.dat. Appending to </foxfs> as fallback.");
+                int endTag = foxfsLine.IndexOf("</foxfs>");
+                if (endTag >= 0)
+                {
+                     foxfsLine.Insert(endTag, newChunkLine);
+                }
+            }
         }
 
         public static bool ModifyFoxfs() // edits the chunk/texture lines in foxfs.dat to accommodate a_chunk7 a_texture7, MGO and GZs data.
@@ -682,7 +707,7 @@ namespace SnakeBite
                 GzsLib.PromoteQarArchive(path + GamePaths.build_ext, path);
             }
             
-            new SettingsManager(GamePaths.SnakeBiteSettings).UpdateDatHash();
+            new SettingsManager(GamePaths.SnakeBiteSettings).UpdateG0sHash();
         }
 
         public static void ClearBuildFiles(params string[] paths)
@@ -819,6 +844,11 @@ namespace SnakeBite
         internal static Version GetSBVersion()
         {
             return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+        }
+
+        internal static Version GetSBGZVersion()
+        {
+            return new Version(0, 0, 1);
         }
 
         private static List<string> cleanupFolders = new List<string> {

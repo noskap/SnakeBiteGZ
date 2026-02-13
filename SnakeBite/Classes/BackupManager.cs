@@ -124,7 +124,7 @@ namespace SnakeBite
                 File.Copy(GamePaths.OnePath + GamePaths.original_ext, GamePaths.OnePath, true);
 
                 SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
-                manager.UpdateDatHash();
+                manager.UpdateG0sHash();
             }
         }
 
@@ -140,7 +140,7 @@ namespace SnakeBite
                 File.Delete(GamePaths.ZeroPath + GamePaths.modded_ext);
                 File.Delete(GamePaths.OnePath + GamePaths.modded_ext);
                 SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
-                manager.UpdateDatHash();
+                manager.UpdateG0sHash();
             }
             if (ModsDisabled())
             {

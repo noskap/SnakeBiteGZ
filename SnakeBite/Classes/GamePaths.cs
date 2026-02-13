@@ -17,13 +17,13 @@ namespace SnakeBite
         internal static string ZeroPath { get { return Properties.Settings.Default.InstallPath + "\\data_00.g0s"; } }
         
         // Unused in GZ or need mapping? Kept for compilation compatibility for now
-        internal static string t7Path { get { return Properties.Settings.Default.InstallPath + "\\master\\a_texture7.dat"; } } 
-        internal static string c7Path { get { return Properties.Settings.Default.InstallPath + "\\master\\a_chunk7.dat"; } }
+        internal static string t7Path { get { return Properties.Settings.Default.InstallPath + "\\a_texture7.dat"; } } 
+        internal static string c7Path { get { return Properties.Settings.Default.InstallPath + "\\a_chunk7.dat"; } }
 
         internal static string SnakeBiteSettings { get { return Properties.Settings.Default.InstallPath + "\\snakebite.xml"; } }
         internal static string GameDirSB_Build { get { return Properties.Settings.Default.InstallPath + "\\GameDir_SB_Build"; } }
         internal static string GameDirBackup_Build { get { return Properties.Settings.Default.InstallPath + "\\GameDir_Backup_Build"; } }
-        internal static string SavePresetPath { get { return Properties.Settings.Default.InstallPath + "\\RevertChanges.MGSVPreset"; } }
+        internal static string SavePresetPath { get { return Properties.Settings.Default.InstallPath + "\\RevertChanges.GZPreset"; } }
 
         internal static string build_ext = ".SB_Build";
         internal static string original_ext = ".original";
@@ -31,7 +31,7 @@ namespace SnakeBite
 
         internal static string NexusURLPath = "https://www.nexusmods.com/metalgearsolidvgroundzeroes";
         internal static string SBWMSearchURLPath = "https://www.nexusmods.com/metalgearsolidvgroundzeroes/search/?search_description=SBWM";
-        internal static string SBWMBugURLPath = "https://www.nexusmods.com/metalgearsolidvgroundzeroes"; // TODO: Update if GZ has specific bug page
+        internal static string SBWMBugURLPath = "https://www.nexusmods.com/metalgearsolidvgroundzeroes/mods/106"; // TODO: Update if GZ has specific bug page
         internal static string WikiURLPath = "https://metalgearmodding.wikia.com/wiki/";
     }
 }

@@ -97,7 +97,7 @@
             this.buttonInstall.Name = "buttonInstall";
             this.buttonInstall.Size = new System.Drawing.Size(191, 23);
             this.buttonInstall.TabIndex = 4;
-            this.buttonInstall.Text = "Install .MGSV File(s)";
+            this.buttonInstall.Text = "Install Mod File(s)";
             this.buttonInstall.UseVisualStyleBackColor = false;
             this.buttonInstall.Click += new System.EventHandler(this.buttonInstall_Click);
             // 
@@ -218,13 +218,13 @@
             // menuItemSavePreset
             // 
             this.menuItemSavePreset.Index = 5;
-            this.menuItemSavePreset.Text = "Save .MGSVPreset File...";
+            this.menuItemSavePreset.Text = "Save .GZPreset File...";
             this.menuItemSavePreset.Click += new System.EventHandler(this.menuItemSavePreset_Click);
             // 
             // menuItemLoadPreset
             // 
             this.menuItemLoadPreset.Index = 6;
-            this.menuItemLoadPreset.Text = "Load .MGSVPreset File...";
+            this.menuItemLoadPreset.Text = "Load .GZPreset File...";
             this.menuItemLoadPreset.Click += new System.EventHandler(this.menuItemLoadPreset_Click);
             // 
             // menuItem4
