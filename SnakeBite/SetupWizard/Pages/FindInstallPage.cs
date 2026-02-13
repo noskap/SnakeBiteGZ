@@ -25,7 +25,7 @@ namespace SnakeBite.SetupWizard
             //var doValidate = MessageBox.Show("SnakeBite will close the Steam validation window automatically when ready, please do not cancel or close the Steam window.", "SnakeBite", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
             var doValidate = MessageBox.Show("Please wait until the Steam validation window says it's complete.", "SnakeBite", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
             if (doValidate == DialogResult.Cancel) return;
-            System.Diagnostics.Process.Start("steam://validate/287700/");
+            System.Diagnostics.Process.Start("steam://validate/311340/");
             //tex times out too early, just waiting for a period isn't robust.
             /*
             BackgroundWorker bw = new BackgroundWorker();
