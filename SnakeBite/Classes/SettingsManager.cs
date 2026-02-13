@@ -248,11 +248,16 @@ namespace SnakeBite
 
         public bool IsVanillaG0sHash() //shouldn't be in settingsmanager
         {
-            return vanillaDatHash.Equals(Tools.GetMd5Hash(GamePaths.ZeroPath) + Tools.GetMd5Hash(GamePaths.OnePath));
+            // GZ: Bypassing hash check
+            return true;
+            //return vanillaDatHash.Equals(Tools.GetMd5Hash(GamePaths.ZeroPath) + Tools.GetMd5Hash(GamePaths.OnePath));
         }
 
         public bool IsVanillaG0sSize() //shouldn't be in settingsmanager
         {
+            // GZ: Bypassing size check for now as we don't have constants
+            return true;
+            /*
             var zeroSize = new System.IO.FileInfo(GamePaths.ZeroPath).Length;
             var oneSize = new System.IO.FileInfo(GamePaths.OnePath).Length;
             if (MINZEROSIZE < zeroSize && zeroSize < MAXZEROSIZE)
@@ -263,6 +268,7 @@ namespace SnakeBite
                 }
             }
             return false;
+            */
         }
 
         public bool IsUpToDate(Version ModVersion) //shouldn't be in settingsmanager

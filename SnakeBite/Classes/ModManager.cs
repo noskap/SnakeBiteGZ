@@ -123,7 +123,7 @@ namespace SnakeBite
                     return;
                 }
 
-                mergeProcessor.ReportProgress(0, String.Format("Modfying foxfs in chunk0.dat ({0} KB)", Tools.GetFileSizeKB(GamePaths.chunk0Path)));
+                mergeProcessor.ReportProgress(0, String.Format("Modfying foxfs in data_02.g0s ({0} KB)", Tools.GetFileSizeKB(GamePaths.chunk0Path)));
                 if (!ModifyFoxfs()) // adds lines to foxfs in chunk0.
                 {
                     Debug.LogLine("[ModifyFoxfs] Failed to complete Foxfs modification. Cancelling...");
@@ -157,7 +157,7 @@ namespace SnakeBite
             }
         }
 
-        public static bool MoveDatFiles() // moves all vanilla 00.dat files, excluding foxpatch.dat, to 01.dat
+        public static bool MoveDatFiles() // moves all vanilla data_00.g0s files to data_01.g0s
         {
             SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
             Debug.LogLine("[DatMerge] Beginning to move files to new archives");
@@ -181,7 +181,7 @@ namespace SnakeBite
             {
                 MessageBox.Show(string.Format("An error has occured while moving files into new archives: {0}", e), "Exception Occurred", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Debug.LogLine(string.Format("[DatMerge] Exception Occurred: {0}", e), Debug.LogLevel.Basic);
-                Debug.LogLine("[DatMerge] SnakeBite could not move the 00.dat or 01.dat contents to new archives.", Debug.LogLevel.Basic);
+                Debug.LogLine("[DatMerge] SnakeBite could not move the .g0s contents to new archives.", Debug.LogLevel.Basic);
 
                 return false;
             }
@@ -193,7 +193,7 @@ namespace SnakeBite
             string destName = null;
             string destFolder = null;
 
-            // lua files 00 -> 01,    texture files 01 -> texture7,   foxpatch 00 -> 00,   chunkfiles 00 -> chunk7
+            // lua files data_00 -> data_01,    texture files data_01 -> texture7,   foxpatch data_00 -> data_00,   chunkfiles data_00 -> chunk7
             Debug.LogLine("[DatMerge] First Time Setup Started", Debug.LogLevel.Debug);
             
             if (manager.SettingsExist()) manager.ClearAllMods();
@@ -232,14 +232,14 @@ namespace SnakeBite
             // Build a_texture7.dat.SB_Build
             File.Copy(GamePaths.OnePath, GamePaths.t7Path + GamePaths.build_ext, true);
 
-            // Build 00.dat.SB_Build
+            // Build data_00.g0s.SB_Build
             GzsLib.WriteQarArchive(GamePaths.ZeroPath + GamePaths.build_ext, "_extr", zeroOut, GzsLib.zeroFlags);
 
-            // Build 01.dat.SB_Build
+            // Build data_01.g0s.SB_Build
             GzsLib.WriteQarArchive(GamePaths.OnePath + GamePaths.build_ext, "_working1", oneFiles, GzsLib.oneFlags);
         }
 
-        // 00 non-snakebite Files to 01,  01 lua files unchanged,   01 textures -> t7,   01 chunkfiles -> c7, 
+        // data_00 non-snakebite Files to data_01,  data_01 lua files unchanged,   data_01 textures -> t7,   data_01 chunkfiles -> c7, 
         private static void MoveDatFilesDirty(SettingsManager manager)
         {
             var modQarFiles = manager.GetModQarFiles();
@@ -248,7 +248,7 @@ namespace SnakeBite
             string destName = null;
             string destFolder = null;
 
-            Debug.LogLine("[DatMerge] Dispersing files from 00 to 01, and then from 01 to a_chunk7 and a_texture7 if necessary.", Debug.LogLevel.Debug);
+            Debug.LogLine("[DatMerge] Dispersing files from data_00 to data_01, and then from data_01 to a_chunk7 and a_texture7 if necessary.", Debug.LogLevel.Debug);
             List<string> oneFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.OnePath, "_extr");
             List<string> zeroList = new List<string>();
             int moveCount = 0;
@@ -271,7 +271,7 @@ namespace SnakeBite
             }
             if (moveCount > 0) //if any non-snakebite files exist in 00, move them to 01.
             {
-                Debug.LogLine("[DatMerge] Moving files to 01.dat.", Debug.LogLevel.Debug);
+                Debug.LogLine("[DatMerge] Moving files to data_01.g0s.", Debug.LogLevel.Debug);
                 List<string> zeroFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.ZeroPath, "_working1");
                 List<string> zeroOut = zeroFiles.ToList();
 
@@ -507,7 +507,7 @@ namespace SnakeBite
                 }
                 else
                 {
-                    MessageBox.Show(string.Format("Setup cancelled: SnakeBite failed to extract foxfs from chunk0."), "foxfs check failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(string.Format("Setup cancelled: SnakeBite failed to extract foxfs from data_02.g0s."), "foxfs check failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     Debug.LogLine("[ModifyFoxfs] Process failed: could not check foxfs.dat", Debug.LogLevel.Debug);
                     CleanupFolders();
 
@@ -574,7 +574,7 @@ namespace SnakeBite
                 }
                 else
                 {
-                    MessageBox.Show(string.Format("Setup cancelled: SnakeBite failed to extract foxfs from chunk0."), "foxfs check failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(string.Format("Setup cancelled: SnakeBite failed to extract foxfs from data_02.g0s."), "foxfs check failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     Debug.LogLine("[UpdateFoxfs] Process failed: could not check foxfs.dat", Debug.LogLevel.Debug);
                     CleanupFolders("_chunk0");
 

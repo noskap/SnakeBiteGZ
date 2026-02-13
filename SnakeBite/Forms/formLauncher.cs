@@ -49,7 +49,7 @@ namespace SnakeBite
             string MGSVersion = MGSVersionInfo.ProductVersion;
 
             // Update version text
-            string VersionText = String.Format("GZ {0} / SB {1} (GZ v{2})", MGSVersion, SBVersion, ModManager.GetSBGZVersion());
+            string VersionText = String.Format("GZ {0} / SB {1} (SBGZ v{2})", MGSVersion, SBVersion, ModManager.GetSBGZVersion());
             labelVersion.Text = VersionText;
             UpdateVersionLabel();
 

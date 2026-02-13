@@ -129,61 +129,26 @@ namespace SnakeBite.SetupWizard
                         Thread.Sleep(10);
                     }
 
-                    // move to merge dats
+                    // GZ: Skip Merge Dat Page
+                    contentPanel.Controls.Clear();
+                    contentPanel.Controls.Add(mergeDatPage); // Reusing this page for "Done" state for now, or just to hold place
+                    
+                    setupComplete = true; // Mark as complete immediately
+                    
                     mergeDatPage.panelProcessing.Visible = false;
                     Application.UseWaitCursor = false;
 
-                    contentPanel.Controls.Clear();
-                    contentPanel.Controls.Add(mergeDatPage);
+                    mergeDatPage.labelWelcome.Text = "Setup complete";
+                    mergeDatPage.labelWelcomeText.Text = "SnakeBite is configured and ready to use.";
+
+                    buttonNext.Text = "Do&ne";
                     buttonNext.Enabled = true;
 
-                    displayPage = 3;
+                    displayPage = 4; // Go to "Done" state
                     break;
 
                 case 3:
-                    // move 00/01 to a_chunk/a_texture
-                    buttonNext.Enabled = false;
-                    buttonBack.Visible = false;
-                    Tag = "noclose";
-                    mergeDatPage.panelProcessing.Visible = true;
-                    Application.UseWaitCursor = true;
-
-                    BackgroundWorker mergeProcessor = new BackgroundWorker();
-                    mergeProcessor.WorkerSupportsCancellation = true;
-                    mergeProcessor.DoWork += new DoWorkEventHandler(ModManager.backgroundWorker_MergeAndCleanup);
-                    mergeProcessor.WorkerReportsProgress = true;
-                    mergeProcessor.ProgressChanged += new ProgressChangedEventHandler(mergeProcessor_ProgressChanged);
-                    mergeProcessor.RunWorkerCompleted += new RunWorkerCompletedEventHandler(mergeProcessor_Completed);
-                    mergeProcessor.RunWorkerAsync();
-
-                    while (mergeProcessor.IsBusy)
-                    {
-                        Application.DoEvents();
-                        Thread.Sleep(40);
-                    }
-                    
-                    if (setupComplete)
-                    {
-                        Debug.LogLine("[Setup Wizard] Setup Complete. Snakebite is configured and ready to use.");
-                        mergeDatPage.panelProcessing.Visible = false;
-                        Application.UseWaitCursor = false;
-
-                        mergeDatPage.labelWelcome.Text = "Setup complete";
-                        mergeDatPage.labelWelcomeText.Text = "SnakeBite is configured and ready to use.";
-
-                        buttonNext.Text = "Do&ne";
-                        buttonNext.Enabled = true;
-
-                        displayPage = 4;
-                    }
-                    else
-                    {
-                        Debug.LogLine("[Setup Wizard] Setup Incomplete.");
-                        Tag = null;
-                        GoToMergeDatPage();
-
-                        buttonNext.Text = "Retry";
-                    }
+                    // GZ: Skipped logic
                     break;
 
                 case 4:
@@ -202,20 +167,16 @@ namespace SnakeBite.SetupWizard
 
         private void buttonSkip_Click(object sender, EventArgs e)
         {
-            GoToMergeDatPage();
+             // GZ: Skip button logic adapted
+             displayPage = 2; // trick into processing as if backup finished
+             buttonNext_Click(null, null);
         }
 
         private void GoToMergeDatPage()
         {
-            buttonSkip.Visible = false;
-            mergeDatPage.panelProcessing.Visible = false;
-            Application.UseWaitCursor = false;
-
-            contentPanel.Controls.Clear();
-            contentPanel.Controls.Add(mergeDatPage);
-            buttonNext.Enabled = true;
-
-            displayPage = 3;
+             // GZ: This should probably not be called or should lead to Done
+             displayPage = 2;
+             buttonNext_Click(null, null); 
         }
 
         private void backupProcessor_ProgressChanged(object sender, ProgressChangedEventArgs e)
