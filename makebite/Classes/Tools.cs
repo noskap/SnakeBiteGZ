@@ -14,6 +14,7 @@ namespace SnakeBite
     {
         internal static List<string> ignoreFileList = new List<string>(new string[] {
             "mgsvtpp.exe",
+            "MgsGroundZeroes.exe",
             "mgsvmgo.exe",
             "steam_api64.dll",
             "steam_appid.txt",

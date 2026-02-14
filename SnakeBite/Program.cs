@@ -178,19 +178,19 @@ namespace SnakeBite
 
                         checkDat = manager.ValidateG0sHash();
 
-                        if (!checkDat || manager.IsVanillaG0sHash())
+                        if (!checkDat)
                         {
                             if (manager.IsVanillaG0sHash() || manager.IsVanillaG0sSize())
                             {
-                                MessageBox.Show("Fresh data_00.g0s/data_01.g0s detected. The setup wizard will now run.", "Game data hash mismatch", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                Debug.LogLine("[Program] Vanilla files detected. Auto-updating hash settings.", Debug.LogLevel.Basic);
+                                manager.UpdateG0sHash();
                             }
                             else
                             {
                                 MessageBox.Show("Game archive has been modified. The setup wizard will now run.", "Game data hash mismatch", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                                SetupWizard.SetupWizard setupWizard = new SetupWizard.SetupWizard();
+                                setupWizard.ShowDialog();
                             }
-
-                            SetupWizard.SetupWizard setupWizard = new SetupWizard.SetupWizard();
-                            setupWizard.ShowDialog();
                         }
                         else if (!BackupManager.c7t7Exist()) // chunk7 and/or texture7 are missing, despite the dathash validating.
                         {

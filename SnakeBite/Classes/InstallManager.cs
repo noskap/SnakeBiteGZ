@@ -20,7 +20,7 @@ namespace SnakeBite
             stopwatch.Start();
 
             Debug.LogLine("[Install] Start", Debug.LogLevel.Basic);
-            ModManager.ClearBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath); // deletes any leftover sb_build files that might still be in the directory (ie from a mid-process shutdown) 
+            ModManager.ClearBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.chunk0Path, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath); // deletes any leftover sb_build files that might still be in the directory (ie from a mid-process shutdown) 
             ModManager.ClearSBGameDir(); // deletes the game directory sb_build
             ModManager.CleanupFolders(); // deletes the work folders which contain extracted files from 00/01
 
@@ -39,17 +39,28 @@ namespace SnakeBite
             foreach(string modFile in ModFiles) installEntryList.Add(Tools.ReadMetaData(modFile));
 
 
-            List<string> zeroFiles = new List<string>();
-            bool hasQarZero = ModManager.hasQarZeroFiles(installEntryList);
-            if (hasQarZero)
+            // GZ: Swapping strict 00/01 logic for generic list based logic or specific data_02 support
+            // data_00 is ignored. data_01 (01.dat) and data_02 (chunk0) are supported.
+
+            List<string> zeroFiles = new List<string>(); // Legacy: data_00 ignored
+            List<string> oneFiles = new List<string>(); // data_01
+            List<string> twoFiles = new List<string>(); // data_02
+
+            bool hasData01 = ModManager.hasQarZeroFiles(installEntryList) || ModManager.foundLooseFtexs(installEntryList); // Reusing check but applying to data_01/02
+            // Actually hasQarZeroFiles checked for non-ftex files.
+            // In our mapping: non-ftex -> data_02. ftex -> data_01.
+            
+            bool hasData02 = ModManager.hasQarZeroFiles(installEntryList); // non-ftex files go to data_02 now
+
+            if (hasData02)
             {
-                zeroFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.ZeroPath, "_working0");
+                 Debug.LogLine("[Install] Extracting data_02.g0s", Debug.LogLevel.Basic);
+                 twoFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.chunk0Path, "_working2");
             }
 
-            List<string> oneFiles = null;
-            bool hasFtexs = ModManager.foundLooseFtexs(installEntryList); 
-            if (hasFtexs)
+            if (hasData01)
             {
+                Debug.LogLine("[Install] Extracting data_01.g0s", Debug.LogLevel.Basic);
                 oneFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.OnePath, "_working1");
             }
 
@@ -57,7 +68,7 @@ namespace SnakeBite
             var gameData = SBBuildManager.GetGameData();
             ModManager.ValidateGameData(ref gameData, ref zeroFiles);
 
-            var zeroFilesHashSet = new HashSet<string>(zeroFiles);
+            var twoFilesHashSet = new HashSet<string>(twoFiles);
 
             Debug.LogLine("[Install] Building gameFiles lists", Debug.LogLevel.Basic);
             var baseGameFiles = GzsLib.ReadBaseData();
@@ -72,22 +83,22 @@ namespace SnakeBite
 
                 Debug.LogLine("[Install] Writing FPK data to Settings", Debug.LogLevel.Basic);
                 AddToSettingsFpk(installEntryList, SBBuildManager, allQarGameFiles, out pullFromVanillas, out pullFromMods, out pathUpdatesExist);
-                InstallMods(ModFiles, SBBuildManager, pullFromVanillas, pullFromMods, ref zeroFilesHashSet, ref oneFiles, pathUpdatesExist);
+                InstallMods(ModFiles, SBBuildManager, pullFromVanillas, pullFromMods, ref twoFilesHashSet, ref oneFiles, pathUpdatesExist);
 
-                if (hasQarZero)
+                if (hasData02)
                 {
-                    zeroFiles = zeroFilesHashSet.ToList();
-                    zeroFiles.Sort();
-                    GzsLib.WriteQarArchive(GamePaths.ZeroPath + GamePaths.build_ext, "_working0", zeroFiles, GzsLib.zeroFlags);
+                    twoFiles = twoFilesHashSet.ToList();
+                    twoFiles.Sort();
+                    GzsLib.WriteQarArchive(GamePaths.chunk0Path + GamePaths.build_ext, "_working2", twoFiles, GzsLib.chunk0Flags);
                 }
-                if (hasFtexs)
+                if (hasData01)
                 {
                     oneFiles.Sort();
                     GzsLib.WriteQarArchive(GamePaths.OnePath + GamePaths.build_ext, "_working1", oneFiles, GzsLib.oneFlags);
                 }
 
                 ModManager.PromoteGameDirFiles();
-                ModManager.PromoteBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
+                ModManager.PromoteBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.chunk0Path, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
 
                 if (!skipCleanup)
                 {
@@ -106,7 +117,7 @@ namespace SnakeBite
                 Debug.LogLine("[Install] Exception: " + e, Debug.LogLevel.Basic);
                 MessageBox.Show("An error has occurred during the installation process and SnakeBite could not install the selected mod(s).\nException: " + e, "Mod(s) could not be installed", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-                ModManager.ClearBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
+                ModManager.ClearBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.chunk0Path, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
                 ModManager.CleanupFolders();
 
                 bool restoreRetry = false;
@@ -130,13 +141,11 @@ namespace SnakeBite
 
         /// <summary>
         /// Merges the new mod files with the existing modded files and vanilla game files.
-        /// The resulting file structure is the new _working0 folder to pack as 00.dat 
         /// </summary>
-        private static void InstallMods(List<string> modFilePaths, SettingsManager manager, List<string> pullFromVanillas, List<string> pullFromMods, ref HashSet<string> zeroFiles, ref List<string> oneFilesList, Dictionary<string, bool> pathUpdatesExist)
+        private static void InstallMods(List<string> modFilePaths, SettingsManager manager, List<string> pullFromVanillas, List<string> pullFromMods, ref HashSet<string> twoFiles, ref List<string> oneFilesList, Dictionary<string, bool> pathUpdatesExist)
         {
-            //Assumption: modded packs have already been extracted to _working0 directory - qarEntryEditList
-            //Assumption: vanilla packs have already been extracted to _gameFpk directory (during AddToSettings) - fpkEntryRetrievalList
-            //theoretically there should be no qar overlap between the _gamefpk(vanilla) and _working0(modded) files
+            //Assumption: modded packs have already been extracted to _working2 directory - qarEntryEditList
+            //Assumption: vanilla packs have already been extracted to _gameFpk directory 
             FastZip unzipper = new FastZip();
             GameData gameData = manager.GetGameData();
 
@@ -175,8 +184,7 @@ namespace SnakeBite
                 ValidateModEntries(ref extractedModEntry);
 
                 Debug.LogLine("[Install] Check mod FPKs against game .dat fpks", Debug.LogLevel.Basic);
-                zeroFiles.UnionWith(MergePacks(extractedModEntry, pullFromVanillas, pullFromMods));
-                //foreach (string zeroFile in zeroFiles) Debug.LogLine(string.Format("Contained in zeroFiles: {0}", zeroFile));
+                twoFiles.UnionWith(MergePacks(extractedModEntry, pullFromVanillas, pullFromMods));
 
                 Debug.LogLine("[Install] Copying loose textures to 01.", Debug.LogLevel.Basic);
                 InstallLooseFtexs(extractedModEntry, ref oneFilesList);
@@ -224,17 +232,16 @@ namespace SnakeBite
 
         private static HashSet<string> MergePacks(ModEntry extractedModEntry, List<string> pullFromVanillas, List<string> pullFromMods)
         {
-            HashSet<string> modQarZeroPaths = new HashSet<string>();
+            HashSet<string> modQarTwoPaths = new HashSet<string>();
             foreach (ModQarEntry modQar in extractedModEntry.ModQarEntries)
             {
-                string workingDestination = Path.Combine("_working0", Tools.ToWinPath(modQar.FilePath));
+                string workingDestination = Path.Combine("_working2", Tools.ToWinPath(modQar.FilePath));
                 if (!Directory.Exists(Path.GetDirectoryName(workingDestination))) Directory.CreateDirectory(Path.GetDirectoryName(workingDestination));
                 string modQarSource = Path.Combine("_extr", Tools.ToWinPath(modQar.FilePath));
                 string existingQarSource;
 
                 if (pullFromMods.FirstOrDefault(e => e == modQar.FilePath) != null)
                 {
-                    //Debug.LogLine(string.Format("{0}'s Qar file '{1}' will pull from _working0 (modded)", extractedModEntry.Name, modQar.FilePath));
                     existingQarSource = workingDestination;
                 }
                 else
@@ -242,13 +249,11 @@ namespace SnakeBite
                     int indexToRemove = pullFromVanillas.FindIndex(m => m == modQar.FilePath); // remove from retrievalfilepaths and add to editlist
                     if (indexToRemove >= 0)
                     {
-                        //Debug.LogLine(string.Format("{0}'s Qar file '{1}' will pull from _gameFpk (fresh game file)", extractedModEntry.Name, modQar.FilePath));
                         existingQarSource = Path.Combine("_gameFpk", Tools.ToWinPath(modQar.FilePath));
                         pullFromVanillas.RemoveAt(indexToRemove); pullFromMods.Add(modQar.FilePath);
                     }
                     else
                     {
-                        //Debug.LogLine(string.Format("{0}'s Qar file '{1}' is non-native or not mergeable", extractedModEntry.Name, modQar.FilePath));
                         existingQarSource = null;
                         if (modQar.FilePath.EndsWith(".fpk") || modQar.FilePath.EndsWith(".fpkd"))
                             pullFromMods.Add(modQar.FilePath); // for merging non-native fpk files consecutively
@@ -260,9 +265,6 @@ namespace SnakeBite
                     var pulledPack = GzsLib.ExtractArchive<FpkFile>(existingQarSource, "_build");
                     var extrPack = GzsLib.ExtractArchive<FpkFile>(modQarSource, "_build");
                     pulledPack = pulledPack.Union(extrPack).ToList();
-                    //foreach(string file in extrPack) Debug.LogLine(string.Format("{0} is listed in the archive extr", file));
-                    //TODO: merge referenced from mod archive to (but then that would probably be tricky keeping track of for Unmerge)
-                    //I think only fpks have references (not fpkd), but whatev.
                     var fpkReferences = GzsLib.GetFpkReferences(existingQarSource);
                     GzsLib.WriteFpkArchive(workingDestination, "_build", pulledPack, fpkReferences);
                 }
@@ -273,12 +275,11 @@ namespace SnakeBite
 
                 if (!modQar.FilePath.Contains(".ftex"))
                 {
-                    //Debug.LogLine(string.Format("Adding {0}'s Qar file '{1}' to 00.dat", extractedModEntry.Name, modQar.FilePath));
-                    modQarZeroPaths.Add(Tools.ToWinPath(modQar.FilePath));
+                    modQarTwoPaths.Add(Tools.ToWinPath(modQar.FilePath));
                 }
             }
 
-            return modQarZeroPaths;
+            return modQarTwoPaths;
         }
 
         // i/o: _extr to _working1

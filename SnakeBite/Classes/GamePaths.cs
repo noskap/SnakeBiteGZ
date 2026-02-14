@@ -29,9 +29,9 @@ namespace SnakeBite
         internal static string original_ext = ".original";
         internal static string modded_ext = ".modded";
 
-        internal static string NexusURLPath = "https://www.nexusmods.com/metalgearsolidvgroundzeroes";
-        internal static string SBWMSearchURLPath = "https://www.nexusmods.com/metalgearsolidvgroundzeroes/search/?search_description=SBWM";
-        internal static string SBWMBugURLPath = "https://www.nexusmods.com/metalgearsolidvgroundzeroes/mods/106"; // TODO: Update if GZ has specific bug page
+        internal static string NexusURLPath = "https://www.nexusmods.com/games/metalgearsolidvgz";
+        internal static string SBWMSearchURLPath = "https://www.nexusmods.com/games/metalgearsolidvgz/search/?search_description=SBWM";
+        internal static string SBWMBugURLPath = "https://www.nexusmods.com/games/metalgearsolidvgz/mods/106"; // TODO: Update if GZ has specific bug page
         internal static string WikiURLPath = "https://metalgearmodding.wikia.com/wiki/";
     }
 }
