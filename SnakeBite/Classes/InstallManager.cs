@@ -20,7 +20,7 @@ namespace SnakeBite
             stopwatch.Start();
 
             Debug.LogLine("[Install] Start", Debug.LogLevel.Basic);
-            ModManager.ClearBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.chunk0Path, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath); // deletes any leftover sb_build files that might still be in the directory (ie from a mid-process shutdown) 
+            ModManager.ClearBuildFiles(GamePaths.OnePath, GamePaths.chunk0Path, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath); // deletes any leftover sb_build files that might still be in the directory (ie from a mid-process shutdown) 
             ModManager.ClearSBGameDir(); // deletes the game directory sb_build
             ModManager.CleanupFolders(); // deletes the work folders which contain extracted files from 00/01
 
@@ -40,9 +40,8 @@ namespace SnakeBite
 
 
             // GZ: Swapping strict 00/01 logic for generic list based logic or specific data_02 support
-            // data_00 is ignored. data_01 (01.dat) and data_02 (chunk0) are supported.
+            // data_00 is ignored (WMV). data_01 (01.dat) and data_02 (chunk0) are supported.
 
-            List<string> zeroFiles = new List<string>(); // Legacy: data_00 ignored
             List<string> oneFiles = new List<string>(); // data_01
             List<string> twoFiles = new List<string>(); // data_02
 
@@ -66,7 +65,7 @@ namespace SnakeBite
 
             SettingsManager SBBuildManager = new SettingsManager(GamePaths.SnakeBiteSettings + GamePaths.build_ext);
             var gameData = SBBuildManager.GetGameData();
-            ModManager.ValidateGameData(ref gameData, ref zeroFiles);
+            ModManager.ValidateGameData(ref gameData);
 
             var twoFilesHashSet = new HashSet<string>(twoFiles);
 

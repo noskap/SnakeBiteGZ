@@ -18,7 +18,7 @@ namespace SnakeBite
     {
 
         //Cull any invalid entries that might have slipped in via older versions of snakebite
-        public static void ValidateGameData(ref GameData gameData, ref List<string> zeroFiles)
+        public static void ValidateGameData(ref GameData gameData)
         {
             Debug.LogLine("[ValidateGameData] Validating gameData files", Debug.LogLevel.Basic);
             Debug.LogLine("[ValidateGameData] Validating qar entries", Debug.LogLevel.Basic);
@@ -29,7 +29,6 @@ namespace SnakeBite
                 {
                     Debug.LogLine(String.Format("[ValidateGameData] Found invalid file entry {0} for archive {1}", qarEntry.FilePath, qarEntry.SourceName), Debug.LogLevel.Basic);
                     gameData.GameQarEntries.RemoveAt(i);
-                    zeroFiles.Remove(qarEntry.FilePath);//DEBUGNOW VERIFY
                 }
             }
             Debug.LogLine("[ValidateGameData] Validating fpk entries", Debug.LogLevel.Basic);
@@ -100,285 +99,15 @@ namespace SnakeBite
             return false;
         }
 
-        /// <summary>
-        /// move vanilla 00 files to 01, moves vanilla 01 textures to texture7, cleans snakebite.xml 
-        /// as DoWorkEventHandler
-        /// </summary>
-        public static void backgroundWorker_MergeAndCleanup(object sender, DoWorkEventArgs e)
+
+
+        public static void ClearBuildFiles(string onePath, string chunk0Path, string settingsPath, string savePresetPath)
         {
-            BackgroundWorker mergeProcessor = (BackgroundWorker)sender;
-            try
-            {
-                GzsLib.LoadDictionaries();
-                ClearBuildFiles(GamePaths.c7Path, GamePaths.t7Path, GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
-                ClearSBGameDir();
-                CleanupFolders();
-                
-                mergeProcessor.ReportProgress(0, String.Format("Migrating files to new archives ({0} KB)", Tools.GetFileSizeKB(GamePaths.ZeroPath, GamePaths.OnePath)));
-                if (!MoveDatFiles()) //moves vanilla 00 files into 01, excluding foxpatch. 
-                {
-                    Debug.LogLine("[DatMerge] Failed to complete archive migration. Cancelling...");
-                    e.Cancel = true;
-                    ClearBuildFiles(GamePaths.c7Path, GamePaths.t7Path, GamePaths.ZeroPath, GamePaths.OnePath);
-                    return;
-                }
-
-                mergeProcessor.ReportProgress(0, String.Format("Modfying foxfs in data_02.g0s ({0} KB)", Tools.GetFileSizeKB(GamePaths.chunk0Path)));
-                if (!ModifyFoxfs()) // adds lines to foxfs in chunk0.
-                {
-                    Debug.LogLine("[ModifyFoxfs] Failed to complete Foxfs modification. Cancelling...");
-                    e.Cancel = true;
-                    ClearBuildFiles(GamePaths.c7Path, GamePaths.t7Path, GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.chunk0Path);
-                    return;
-                }
-
-                mergeProcessor.ReportProgress(0, "Promoting new archives");
-                PromoteBuildFiles(GamePaths.c7Path, GamePaths.t7Path, GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.chunk0Path); // overwrites existing archives with modified archives
-
-                mergeProcessor.ReportProgress(0, "Cleaning database");
-                CleanupDatabase();
-            }
-            catch (Exception f)
-            {
-                MessageBox.Show(string.Format("An error has occurred while attempting to merge or clean up SnakeBite data: {0}", f), "Exception Occurred", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Debug.LogLine(string.Format("[MergeAndCleanup] Exception Occurred: {0}", f), Debug.LogLevel.Basic);
-                Debug.LogLine("[MergeAndCleanup] SnakeBite has failed to merge and clean up SnakeBite data", Debug.LogLevel.Basic);
-                e.Cancel = true;
-                try
-                {
-                    ClearBuildFiles(GamePaths.c7Path, GamePaths.t7Path, GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.chunk0Path);
-                }
-                catch (Exception g)
-                {
-                    Debug.LogLine(string.Format("[MergeAndCleanup] Exception Occurred: {0}", g), Debug.LogLevel.Basic);
-                    Debug.LogLine("[MergeAndCleanup] SnakeBite has failed to remove the build files.", Debug.LogLevel.Basic);
-                }
-                return;
-            }
+            if (File.Exists(onePath + GamePaths.build_ext)) File.Delete(onePath + GamePaths.build_ext);
+            if (File.Exists(chunk0Path + GamePaths.build_ext)) File.Delete(chunk0Path + GamePaths.build_ext);
+            if (File.Exists(settingsPath + GamePaths.build_ext)) File.Delete(settingsPath + GamePaths.build_ext);
+            if (File.Exists(savePresetPath + GamePaths.build_ext)) File.Delete(savePresetPath + GamePaths.build_ext);
         }
-
-        public static bool MoveDatFiles() // moves all vanilla data_00.g0s files to data_01.g0s
-        {
-            SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
-            Debug.LogLine("[DatMerge] Beginning to move files to new archives");
-            try
-            {
-                if (manager.IsVanillaG0sHash() || manager.IsVanillaG0sSize() )
-                {   // first time setup or files have been revalidated
-                    MoveDatFilesClean(manager);
-                }
-                else
-                {   // the "uncertainty" case.
-                    MoveDatFilesDirty(manager);
-                }
-
-                Debug.LogLine(String.Format("[DatMerge] Archive merging finished"), Debug.LogLevel.Debug);
-                CleanupFolders();
-
-                return Checkc7t7Setup();
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show(string.Format("An error has occured while moving files into new archives: {0}", e), "Exception Occurred", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                Debug.LogLine(string.Format("[DatMerge] Exception Occurred: {0}", e), Debug.LogLevel.Basic);
-                Debug.LogLine("[DatMerge] SnakeBite could not move the .g0s contents to new archives.", Debug.LogLevel.Basic);
-
-                return false;
-            }
-        }
-
-        private static void MoveDatFilesClean(SettingsManager manager)
-        {
-            string sourceName = null;
-            string destName = null;
-            string destFolder = null;
-
-            // lua files data_00 -> data_01,    texture files data_01 -> texture7,   foxpatch data_00 -> data_00,   chunkfiles data_00 -> chunk7
-            Debug.LogLine("[DatMerge] First Time Setup Started", Debug.LogLevel.Debug);
-            
-            if (manager.SettingsExist()) manager.ClearAllMods();
-
-            List<string> zeroFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.ZeroPath, "_extr");
-            List<string> chunk7Files = new List<string>();
-            List<string> oneFiles = new List<string>();
-
-            List<string> zeroOut = zeroFiles.ToList();
-
-            foreach (string zeroFile in zeroFiles)
-            {
-                if (zeroFile == "foxpatch.dat") continue;
-
-                sourceName = Path.Combine("_extr", Tools.ToWinPath(zeroFile));
-
-                if (zeroFile.Contains(".lua"))
-                {
-                    destName = Path.Combine("_working1", Tools.ToWinPath(zeroFile)); // 00 -> 01
-                    oneFiles.Add(zeroFile);
-                } else
-                {
-                    destName = Path.Combine("_working2", Tools.ToWinPath(zeroFile)); // 00 -> chunk7
-                    chunk7Files.Add(zeroFile);
-                }
-                zeroOut.Remove(zeroFile);
-
-                destFolder = Path.GetDirectoryName(destName);
-                if (!Directory.Exists(destFolder)) Directory.CreateDirectory(destFolder);
-                if (!File.Exists(destName)) File.Move(sourceName, destName);
-            }
-            
-            // Build a_chunk7.dat.SB_Build
-            GzsLib.WriteQarArchive(GamePaths.c7Path + GamePaths.build_ext, "_working2", chunk7Files, GzsLib.chunk7Flags);
-
-            // Build a_texture7.dat.SB_Build
-            File.Copy(GamePaths.OnePath, GamePaths.t7Path + GamePaths.build_ext, true);
-
-            // Build data_00.g0s.SB_Build
-            GzsLib.WriteQarArchive(GamePaths.ZeroPath + GamePaths.build_ext, "_extr", zeroOut, GzsLib.zeroFlags);
-
-            // Build data_01.g0s.SB_Build
-            GzsLib.WriteQarArchive(GamePaths.OnePath + GamePaths.build_ext, "_working1", oneFiles, GzsLib.oneFlags);
-        }
-
-        // data_00 non-snakebite Files to data_01,  data_01 lua files unchanged,   data_01 textures -> t7,   data_01 chunkfiles -> c7, 
-        private static void MoveDatFilesDirty(SettingsManager manager)
-        {
-            var modQarFiles = manager.GetModQarFiles();
-
-            string sourceName = null;
-            string destName = null;
-            string destFolder = null;
-
-            Debug.LogLine("[DatMerge] Dispersing files from data_00 to data_01, and then from data_01 to a_chunk7 and a_texture7 if necessary.", Debug.LogLevel.Debug);
-            List<string> oneFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.OnePath, "_extr");
-            List<string> zeroList = new List<string>();
-            int moveCount = 0;
-
-            try
-            {
-                zeroList = GzsLib.ListArchiveContents<QarFile>(GamePaths.ZeroPath);
-            } catch (Exception e)
-            {
-                Debug.LogLine(String.Format("[Error] GzsLib.ListArchiveContents exception: {0}", e.ToString()), Debug.LogLevel.Debug);
-                throw e;
-            }
-
-            foreach (string zeroFile in zeroList)
-            {
-                if (zeroFile == "foxpatch.dat") continue;
-                if (modQarFiles.Contains(Tools.ToQarPath(zeroFile)) || oneFiles.Contains(zeroFile)) continue;
-                if (oneFiles.Contains(zeroFile)) continue;
-                moveCount++;
-            }
-            if (moveCount > 0) //if any non-snakebite files exist in 00, move them to 01.
-            {
-                Debug.LogLine("[DatMerge] Moving files to data_01.g0s.", Debug.LogLevel.Debug);
-                List<string> zeroFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.ZeroPath, "_working1");
-                List<string> zeroOut = zeroFiles.ToList();
-
-                foreach (string zeroFile in zeroFiles)
-                {
-                    if (zeroFile == "foxpatch.dat") continue;
-                    if (modQarFiles.Contains(Tools.ToQarPath(zeroFile))) continue;
-                    if (oneFiles.Contains(zeroFile)) { zeroOut.Remove(zeroFile); continue; } //if it already exists in 01 then there's nowhere for it to go.
-
-                    sourceName = Path.Combine("_working1", Tools.ToWinPath(zeroFile));
-                    destName = Path.Combine("_extr", Tools.ToWinPath(zeroFile));
-
-                    oneFiles.Add(zeroFile); // 00 -> 01
-                    zeroOut.Remove(zeroFile);
-
-                    destFolder = Path.GetDirectoryName(destName);
-                    if (!Directory.Exists(destFolder)) Directory.CreateDirectory(destFolder);
-                    if (!File.Exists(destName)) File.Move(sourceName, destName);
-                }
-
-                GzsLib.WriteQarArchive(GamePaths.ZeroPath + GamePaths.build_ext, "_working1", zeroOut, GzsLib.zeroFlags); // rebuild 00 archive
-
-
-                Directory.Delete("_working1", true); // clean up _working1, to be used by texture7
-                while (Directory.Exists("_working1"))
-                    Thread.Sleep(100);
-            }
-
-            moveCount = 0; // check if any files need to be moved to C7/T7
-            int textureCount = 0;
-            List<string> chunk7List = new List<string>();
-            List<string> tex7List = new List<string>();
-            
-            try
-            {
-                if (File.Exists(GamePaths.t7Path)) tex7List = GzsLib.ListArchiveContents<QarFile>(GamePaths.t7Path);
-                if (File.Exists(GamePaths.c7Path)) chunk7List = GzsLib.ListArchiveContents<QarFile>(GamePaths.c7Path);
-            } catch (Exception e)
-            {
-                Debug.LogLine(String.Format("[Error] GzsLib.ListArchiveContents exception: {0}", e.ToString()), Debug.LogLevel.Debug);
-                throw e;
-            }
-
-            foreach (string oneFile in oneFiles)
-            {
-                if (modQarFiles.Contains(Tools.ToQarPath(oneFile)) || tex7List.Contains(oneFile) || chunk7List.Contains(oneFile)) continue;
-                if (oneFile.Contains(".lua")) continue; // vanilla lua files must stay in 01
-                if (oneFile.Contains(".ftex")) textureCount++;
-                moveCount++;
-            }
-            if (moveCount > 0)
-            {
-                List<string> oneOut = oneFiles.ToList();
-
-                if (textureCount > 0) // if non-snakebite textures exist, move them to t7
-                {
-                    Debug.LogLine("[DatMerge] Moving files to a_texture7.dat.", Debug.LogLevel.Debug);
-                    List<string> texture7Files = new List<string>();
-                    if (File.Exists(GamePaths.t7Path)) texture7Files = GzsLib.ExtractArchive<QarFile>(GamePaths.t7Path, "_working1");
-
-                    foreach (string oneFile in oneFiles) // once 00 files have been moved, move 01 files into t7, c7.
-                    {
-                        if (modQarFiles.Contains(Tools.ToQarPath(oneFile))) continue;
-                        if (oneFile.Contains(".ftex"))
-                        {
-                            sourceName = Path.Combine("_extr", Tools.ToWinPath(oneFile));
-                            destName = Path.Combine("_working1", Tools.ToWinPath(oneFile)); // 01 -> texture7
-                            destFolder = Path.GetDirectoryName(destName);
-
-                            if (!texture7Files.Contains(oneFile)) texture7Files.Add(oneFile);
-                            oneOut.Remove(oneFile);
-                            if (!Directory.Exists(destFolder)) Directory.CreateDirectory(destFolder);
-                            if (!File.Exists(destName)) File.Move(sourceName, destName);
-                        }
-                    }
-                    GzsLib.WriteQarArchive(GamePaths.t7Path + GamePaths.build_ext, "_working1", texture7Files, GzsLib.texture7Flags);
-                }
-
-                oneFiles = oneOut.ToList(); // update oneFiles to remove any .ftex already found
-                if (oneFiles.Count > 0) // if any other files need to be moved, they go in chunk7
-                {
-                    Debug.LogLine("[DatMerge] Moving files to a_chunk7.dat.", Debug.LogLevel.Debug);
-                    List<string> chunk7Files = new List<string>();
-                    if (File.Exists(GamePaths.c7Path)) chunk7Files = GzsLib.ExtractArchive<QarFile>(GamePaths.c7Path, "_working2");
-
-                    foreach (string oneFile in oneFiles) // once 00 files have been moved, move 01 files into t7, c7.
-                    {
-                        if (modQarFiles.Contains(Tools.ToQarPath(oneFile))) continue;
-                        if (oneFile.Contains(".lua")) continue;
-
-                        sourceName = Path.Combine("_extr", Tools.ToWinPath(oneFile));
-                        destName = Path.Combine("_working2", Tools.ToWinPath(oneFile)); // 00 -> chunk7
-                        destFolder = Path.GetDirectoryName(destName);
-
-                        if (!chunk7Files.Contains(oneFile)) chunk7Files.Add(oneFile);
-                        oneOut.Remove(oneFile);
-
-
-                        if (!Directory.Exists(destFolder)) Directory.CreateDirectory(destFolder);
-                        if (!File.Exists(destName)) File.Move(sourceName, destName);
-                    }
-                    GzsLib.WriteQarArchive(GamePaths.c7Path + GamePaths.build_ext, "_working2", chunk7Files, GzsLib.chunk7Flags); // rebuild chunk7 archive
-                }
-                GzsLib.WriteQarArchive(GamePaths.OnePath + GamePaths.build_ext, "_extr", oneOut, GzsLib.oneFlags); // rebuild 01 archive
-            }
-        }
-
         private static bool Checkc7t7Setup()
         {
             //check for good c7, t7
@@ -748,18 +477,19 @@ namespace SnakeBite
             SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
             var mods = manager.GetInstalledMods();
             var game = manager.GetGameData();
-            var zeroFiles = GzsLib.ListArchiveContents<QarFile>(GamePaths.ZeroPath);
+            // GZ: data_00 is WMV. Use data_01 (OnePath) for cleanup checks.
+            var oneFiles = GzsLib.ListArchiveContents<QarFile>(GamePaths.OnePath);
 
-            //Should only happen if user manually mods 00.dat
+            //Should only happen if user manually mods 01.dat
             Debug.LogLine("[Cleanup] Removing duplicate file entries", Debug.LogLevel.Debug);
             // Remove duplicate file entries
-            var cleanFiles = zeroFiles.ToList();
-            foreach (string file in zeroFiles)
+            var cleanFiles = oneFiles.ToList();
+            foreach (string file in oneFiles)
             {
                 while (cleanFiles.Count(entry => entry == file) > 1)
                 {
                     cleanFiles.Remove(file);
-                    Debug.LogLine(String.Format("[Cleanup] Found duplicate file in 00.dat: {0}", file), Debug.LogLevel.Debug);
+                    Debug.LogLine(String.Format("[Cleanup] Found duplicate file in 01.dat: {0}", file), Debug.LogLevel.Debug);
                 }
             }
 
@@ -772,7 +502,7 @@ namespace SnakeBite
                 string fpkName = Path.GetFileName(fpkFile);
                 // Extract FPK from archive
                 Debug.LogLine(String.Format("[Cleanup] Examining {0}", fpkName));
-                GzsLib.ExtractFile<QarFile>(GamePaths.ZeroPath, fpkFile, fpkName);
+                GzsLib.ExtractFile<QarFile>(GamePaths.OnePath, fpkFile, fpkName);
 
                 // Read FPK contents
                 var fpkContent = GzsLib.ListArchiveContents<FpkFile>(fpkName);

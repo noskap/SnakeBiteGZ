@@ -34,8 +34,7 @@ namespace SnakeBite
                     if (File.Exists(sourcePath)) { Debug.LogLine(string.Format("[SavePreset] Copying to build directory: {0}", gameFile), Debug.LogLevel.Basic);  File.Copy(sourcePath, Path.Combine(DestDir, fileName), true); }
                     else Debug.LogLine(string.Format("[SavePreset] File not found: {0}", sourcePath), Debug.LogLevel.Basic);
                 }
-                Debug.LogLine("[SavePreset] Copying to build directory: 00.dat", Debug.LogLevel.Basic);
-                File.Copy(GamePaths.ZeroPath, "_build\\master\\0\\00.dat", true);
+
 
                 Debug.LogLine("[SavePreset] Copying to build directory: 01.dat", Debug.LogLevel.Basic);
                 File.Copy(GamePaths.OnePath, "_build\\master\\0\\01.dat", true);
@@ -101,8 +100,7 @@ namespace SnakeBite
                             File.Move(gameFilePath, gameFilePath + GamePaths.build_ext);
                         }
                     }
-                    Debug.LogLine("[LoadPreset] Storing backup: 00.dat", Debug.LogLevel.Basic);
-                    File.Copy(GamePaths.ZeroPath, GamePaths.ZeroPath + GamePaths.build_ext, true);
+
 
                     Debug.LogLine("[LoadPreset] Storing backup: 01.dat", Debug.LogLevel.Basic);
                     File.Copy(GamePaths.OnePath, GamePaths.OnePath + GamePaths.build_ext, true);
@@ -129,7 +127,7 @@ namespace SnakeBite
                 {
                     Debug.LogLine("[LoadPreset] Restoring backup files", Debug.LogLevel.Basic);
 
-                    File.Copy(GamePaths.ZeroPath + GamePaths.build_ext, GamePaths.ZeroPath, true);
+
                     File.Copy(GamePaths.OnePath + GamePaths.build_ext, GamePaths.OnePath, true);
                     File.Copy(GamePaths.SnakeBiteSettings + GamePaths.build_ext, GamePaths.SnakeBiteSettings, true);
 
@@ -171,7 +169,7 @@ namespace SnakeBite
                             }
                         }
                     }
-                    File.Delete(GamePaths.ZeroPath + GamePaths.build_ext);
+
                     File.Delete(GamePaths.OnePath + GamePaths.build_ext);
                     File.Delete(GamePaths.SnakeBiteSettings + GamePaths.build_ext);
                 }

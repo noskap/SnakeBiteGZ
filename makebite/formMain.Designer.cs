@@ -100,7 +100,7 @@
             this.labelForVersion.Name = "labelForVersion";
             this.labelForVersion.Size = new System.Drawing.Size(81, 15);
             this.labelForVersion.TabIndex = 7;
-            this.labelForVersion.Text = "MGSV Version";
+            this.labelForVersion.Text = "MGSVGZ Version";
             // 
             // buttonMetaLoad
             // 

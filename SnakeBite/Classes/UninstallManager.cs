@@ -23,7 +23,7 @@ namespace SnakeBite
             Debug.LogLine("[Uninstall] Start", Debug.LogLevel.Basic);
 
             // initial cleanup
-            ModManager.ClearBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
+            ModManager.ClearBuildFiles(GamePaths.OnePath, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
             ModManager.ClearSBGameDir();
             ModManager.CleanupFolders();
 
@@ -48,15 +48,7 @@ namespace SnakeBite
                 selectedMods.Add(mod);
             }
 
-            List<string> zeroFiles = new List<string>();
-            bool hasQarZero = ModManager.hasQarZeroFiles(selectedMods);
-            if (hasQarZero)
-            {
-                // if necessary, extracts 00.dat and creates a list of filenames, which is pruned throughout the uninstall process and repacked at the end.
-                zeroFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.ZeroPath, "_working0");
-                zeroFiles.RemoveAll(file => file.EndsWith("_unknown"));
 
-            }
 
             List<string> oneFiles = null;
             bool hasFtexs = ModManager.foundLooseFtexs(selectedMods);
@@ -69,7 +61,7 @@ namespace SnakeBite
 
             //end of qar extraction
             GameData gameData = SBBuildManager.GetGameData();
-            ModManager.ValidateGameData(ref gameData, ref zeroFiles);
+            ModManager.ValidateGameData(ref gameData);
 
             Debug.LogLine("[Uninstall] Building gameFiles lists", Debug.LogLevel.Basic);
             var baseGameFiles = GzsLib.ReadBaseData();
@@ -77,13 +69,9 @@ namespace SnakeBite
             {
                 ModManager.PrepGameDirFiles();
                 // begin uninstall
-                UninstallMods(selectedMods, ref zeroFiles, ref oneFiles);
+                UninstallMods(selectedMods, ref oneFiles);
 
-                if(hasQarZero)
-                {
-                    zeroFiles.Sort();
-                    GzsLib.WriteQarArchive(GamePaths.ZeroPath + GamePaths.build_ext, "_working0", zeroFiles, GzsLib.zeroFlags);
-                }
+
 
                 if (hasFtexs)
                 {
@@ -94,7 +82,7 @@ namespace SnakeBite
                 
                 // overwrite old mod data
                 ModManager.PromoteGameDirFiles();
-                ModManager.PromoteBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
+                ModManager.PromoteBuildFiles(GamePaths.OnePath, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
                 
                 if (!skipCleanup)
                 {
@@ -137,7 +125,7 @@ namespace SnakeBite
             }
         }//UninstallMod batch
 
-        private static void UninstallMods(List<ModEntry> uninstallMods, ref List<string> zeroFiles, ref List<string> oneFilesList)
+        private static void UninstallMods(List<ModEntry> uninstallMods, ref List<string> oneFilesList)
         {
             Debug.LogLine(String.Format("[Uninstall] Bulk uninstall started"), Debug.LogLevel.Basic);
             List<string> fullRemoveQarPaths; // for qar files that can be removed altogether
@@ -151,7 +139,7 @@ namespace SnakeBite
             UnmergePackFiles(partialEditQarEntries, partialRemoveFpkEntries);
 
             Debug.LogLine("[Uninstall] Removing any unmodified fpk entries", Debug.LogLevel.Basic);
-            RemoveDemoddedQars(ref zeroFiles, fullRemoveQarPaths);
+            RemoveDemoddedQars(fullRemoveQarPaths); // Refactor this method next to not need zeroFiles
 
             bool isRemovingWMV = false; //ZIP: WMV Support
             GameData gameData = SBBuildManager.GetGameData();
@@ -353,10 +341,9 @@ namespace SnakeBite
             SBBuildManager.SetGameData(gameData);
         }
 
-        private static void RemoveDemoddedQars(ref List<string> zeroFiles, List<string> fullRemoveQarPaths)
+        private static void RemoveDemoddedQars(List<string> fullRemoveQarPaths)
         {
             // Remove the specified files from the mod ecosystem since they no longer contain modded data
-            zeroFiles = zeroFiles.Except(fullRemoveQarPaths.Select(entry => Tools.ToWinPath(entry))).ToList();
             List<ModEntry> installedMods = SBBuildManager.GetInstalledMods();
             GameData gameData = SBBuildManager.GetGameData();
             foreach(string fullRemoveQarPath in fullRemoveQarPaths)
