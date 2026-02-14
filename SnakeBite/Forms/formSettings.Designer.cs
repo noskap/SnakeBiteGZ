@@ -249,7 +249,7 @@
             this.labelNexusLink.Size = new System.Drawing.Size(351, 16);
             this.labelNexusLink.TabIndex = 1;
             this.labelNexusLink.TabStop = true;
-            this.labelNexusLink.Text = "www.nexusmods.com/metalgearsolidvgroundzeroes";
+            this.labelNexusLink.Text = "www.nexusmods.com/games/metalgearsolidvgz";
             this.labelNexusLink.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.labelNexusLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkNexusLink_LinkClicked);
             // 
