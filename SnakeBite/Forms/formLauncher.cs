@@ -103,7 +103,7 @@ namespace SnakeBite
                             exitColour = Color.FromArgb(theme.ExitColour.alpha, theme.ExitColour.red, theme.ExitColour.green, theme.ExitColour.blue);
                         }
                     }
-                    var bgEntry = themeFile.FindEntry("LAUNCHERBGv2.png", true);
+                    var bgEntry = themeFile.FindEntry("LAUNCHERBG.png", true);
                     if (bgEntry >= 0)
                     {
                         BackgroundImage = Image.FromStream(themeFile.GetInputStream(themeFile[bgEntry]));

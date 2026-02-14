@@ -22,7 +22,8 @@ namespace SnakeBite
 
         public static bool c7t7Exist()
         {
-            return (File.Exists(GamePaths.t7Path) && File.Exists(GamePaths.c7Path));
+            //return (File.Exists(GamePaths.t7Path) && File.Exists(GamePaths.c7Path));
+            return false;
         }
 
         public static bool ModsDisabled()
@@ -35,8 +36,8 @@ namespace SnakeBite
             // delete existing data
             File.Delete(GamePaths.OnePath);
             File.Delete(GamePaths.chunk0Path);
-            File.Delete(GamePaths.c7Path);
-            File.Delete(GamePaths.t7Path);
+            //File.Delete(GamePaths.c7Path);
+            //File.Delete(GamePaths.t7Path);
 
             // delete mod data
             File.Delete(GamePaths.OnePath + GamePaths.modded_ext);
@@ -91,8 +92,8 @@ namespace SnakeBite
                 fileExists = false;
                 if (File.Exists(GamePaths.OnePath)) fileExists = true;
                 if (File.Exists(GamePaths.chunk0Path)) fileExists = true;
-                if (File.Exists(GamePaths.c7Path)) fileExists = true;
-                if (File.Exists(GamePaths.t7Path)) fileExists = true;
+                //if (File.Exists(GamePaths.c7Path)) fileExists = true;
+                //if (File.Exists(GamePaths.t7Path)) fileExists = true;
             }
 
             File.Move(GamePaths.ZeroPath + GamePaths.original_ext, GamePaths.ZeroPath);

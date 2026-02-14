@@ -140,7 +140,7 @@
             this.Margin = new System.Windows.Forms.Padding(7);
             this.Name = "formLauncher";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "SnakeBite Launcher";
+            this.Text = "SnakeBite GZ Launcher";
             this.Load += new System.EventHandler(this.formLauncher_Load);
             this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.formLauncher_KeyPress);
             this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.formLauncher_MouseDown);

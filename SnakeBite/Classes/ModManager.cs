@@ -108,58 +108,7 @@ namespace SnakeBite
             if (File.Exists(settingsPath + GamePaths.build_ext)) File.Delete(settingsPath + GamePaths.build_ext);
             if (File.Exists(savePresetPath + GamePaths.build_ext)) File.Delete(savePresetPath + GamePaths.build_ext);
         }
-        private static bool Checkc7t7Setup()
-        {
-            //check for good c7, t7
-            int archiveState = 0;
 
-            string chunkCheckPath = GamePaths.c7Path + GamePaths.build_ext;
-            if (!File.Exists(chunkCheckPath)) chunkCheckPath = GamePaths.c7Path;
-
-            string texCheckPath = GamePaths.t7Path + GamePaths.build_ext;
-            if (!File.Exists(texCheckPath)) texCheckPath = GamePaths.t7Path;
-
-            // check if they exist and their size
-            long chunkSize = 0;
-            long texSize = 0;
-            if (File.Exists(chunkCheckPath) && File.Exists(texCheckPath))
-            {
-                chunkSize = new FileInfo(chunkCheckPath).Length;
-                texSize = new FileInfo(texCheckPath).Length;
-                if (chunkSize >= 345000000 && texSize >= 250000000)
-                {
-                    archiveState = 1; // Good State
-                }
-                else archiveState = 2; // Bad Size
-            }
-            else archiveState = 3; // Not Found
-            
-            switch (archiveState)
-            {
-                case 1:
-                    Debug.LogLine("[DatMerge] chunk7 and texture7 are sufficiently large and likely valid.", Debug.LogLevel.Basic);
-                    return true;
-
-                case 2:
-                    MessageBox.Show("SnakeBite has detected that the reformatted game data is smaller than expected and likely invalid." +
-                        "\n\nThis will result in the game crashing on startup." +
-                        "\n\n If this occurs, please use 'Restore Backup Game Files' in the SnakeBite settings or verify the integrity of your game through Steam.", "Filesize check failed", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-                    Debug.LogLine(String.Format("[DatMerge] {0} filesize: {1}", Path.GetFileName(chunkCheckPath), chunkSize), Debug.LogLevel.Basic);
-                    Debug.LogLine(String.Format("[DatMerge] {0} filesize: {1}", Path.GetFileName(texCheckPath), texSize), Debug.LogLevel.Basic);
-                    break;
-
-                case 3:
-                    MessageBox.Show("SnakeBite could not reformat the necessary game data during setup. This issue could be caused by missing game files."+
-                        "\n\nThis error will result in the game crashing on startup." +
-                        "\n\n If this occurs, please use 'Restore Backup Game Files' in the SnakeBite settings or verify the integrity of your game through Steam.", "Missing archive file(s)", MessageBoxButtons.OK, MessageBoxIcon.Error);
-
-                    Debug.LogLine("[DatMerge] chunk7 and/or texture7 were not created during the setup process.", Debug.LogLevel.Basic);
-                    break;
-            }
-
-            return (MessageBox.Show("Would you still like to continue the setup process?", "Continue Setup?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes);
-        }
 
         public static void AddChunks(ref List<string> foxfsLine)//ZIP: Retain additional chunk support
         {

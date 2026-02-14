@@ -186,7 +186,7 @@ namespace makebite
                     //string parentPath = Directory.GetParent(modPath).ToString();
                     //DoBuild(String.Format("{0}\\{1}.mgsv", parentPath, folderName));
 
-                    DoBuild(Path.Combine(modPath, "mod.mgsv"));
+                    DoBuild(Path.Combine(modPath, "mod.mgsvgz"));
                     Application.Exit();    // build and exit
                 }
             }

@@ -351,7 +351,7 @@
     <None Include="Resources\ui_select.wav" />
     <None Include="Resources\ui_move.wav" />
     <None Include="Resources\mgsExclamation.png" />
-    <None Include="Resources\LAUNCHERBGv2.png" />
+    <None Include="Resources\LAUNCHERBG.png" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">

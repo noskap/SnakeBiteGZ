@@ -302,7 +302,7 @@ namespace SnakeBite
             else if (saveModsResult == DialogResult.Cancel) return;
             */
             OpenFileDialog getPresetFile = new OpenFileDialog();
-            getPresetFile.Filter = "MGSV Preset File|*.MGSVPreset|All Files|*.*";
+            getPresetFile.Filter = "GZ Preset File|*.GZPreset|All Files|*.*";
             getPresetFile.Multiselect = true;
 
             DialogResult getPresetResult = getPresetFile.ShowDialog();

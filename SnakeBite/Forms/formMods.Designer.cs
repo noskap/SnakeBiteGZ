@@ -382,7 +382,7 @@
             this.Name = "formMods";
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Show;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "SnakeBite Mod Manager";
+            this.Text = "SnakeBite GZ Mod Manager";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.formMods_FormClosing);
             this.Load += new System.EventHandler(this.formMain_Load);
             this.Resize += new System.EventHandler(this.formMods_Resize);
