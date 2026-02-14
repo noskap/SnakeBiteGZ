@@ -73,14 +73,23 @@ namespace SnakeBite.GzsTool
 
             Debug.LogLine(String.Format("[GzsLib] Running: {0} {1}", GzsToolExe, arguments));
 
-            using (Process process = Process.Start(startInfo))
+            using (Process process = new Process())
             {
-                process.WaitForExit();
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
+                process.StartInfo = startInfo;
                 
-                if (!string.IsNullOrEmpty(output)) Debug.LogLine(String.Format("[GzsTool] {0}", output));
-                if (!string.IsNullOrEmpty(error)) Debug.LogLine(String.Format("[GzsTool Error] {0}", error));
+                List<string> outputLines = new List<string>();
+                List<string> errorLines = new List<string>();
+
+                process.OutputDataReceived += (sender, e) => { if (e.Data != null) outputLines.Add(e.Data); };
+                process.ErrorDataReceived += (sender, e) => { if (e.Data != null) errorLines.Add(e.Data); };
+
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+                process.WaitForExit();
+
+                if (outputLines.Count > 0) Debug.LogLine(String.Format("[GzsTool] {0}", string.Join(Environment.NewLine, outputLines)));
+                if (errorLines.Count > 0) Debug.LogLine(String.Format("[GzsTool Error] {0}", string.Join(Environment.NewLine, errorLines)));
 
                 return process.ExitCode == 0;
             }
