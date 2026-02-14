@@ -85,7 +85,7 @@ namespace SnakeBite
             OpenFileDialog openModFile = new OpenFileDialog();
             List<string> ModNames = new List<string>();
 
-            openModFile.Filter = "SnakeBite Mod Files|*.mgsv|All Files|*.*";
+            openModFile.Filter = "SnakeBite GZ Mod Files|*.mgsvgz|All Files|*.*";
             openModFile.Multiselect = true;
             DialogResult ofdResult = openModFile.ShowDialog();
             if (ofdResult != DialogResult.OK) return;
@@ -152,16 +152,16 @@ namespace SnakeBite
             List<string> InstallFileList = new List<string>();
 
             foreach (string installModPath in installPaths) {
-                if (File.Exists(installModPath) && installModPath.Contains(".mgsv")) {
+                if (File.Exists(installModPath) && installModPath.Contains(".mgsvgz")) {
                     InstallFileList.Add(installModPath);
                 } else {
                     if (Directory.Exists(installModPath)) {
-                        var folderFiles = Directory.GetFiles(installModPath, "*.mgsv");
+                        var folderFiles = Directory.GetFiles(installModPath, "*.mgsvgz");
                         foreach (string mgsv in folderFiles) {
                             InstallFileList.Add(mgsv);
                         }
                         if (InstallFileList.Count == 0) {
-                            Debug.LogLine(String.Format("[Install] Could not find any .mgsv files in {0}.", installModPath), Debug.LogLevel.Basic);
+                            Debug.LogLine(String.Format("[Install] Could not find any .mgsvgz files in {0}.", installModPath), Debug.LogLevel.Basic);
                         }
                         InstallFileList.Sort();
                     } else {
@@ -171,7 +171,7 @@ namespace SnakeBite
             }
             if (InstallFileList.Count == 0)
             {
-                Debug.LogLine("[Install] Could not find any .mgsv files in installPaths.", Debug.LogLevel.Basic);
+                Debug.LogLine("[Install] Could not find any .mgsvgz files in installPaths.", Debug.LogLevel.Basic);
                 return;
             }
             if (!skipConflictChecks)

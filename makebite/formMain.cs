@@ -96,7 +96,7 @@ namespace makebite
         private void buttonBuild_Click(object sender, EventArgs e)
         {
             SaveFileDialog saveMod = new SaveFileDialog();
-            saveMod.Filter = "MGSV Mod File|*.mgsv";
+            saveMod.Filter = "MGSV GZ Mod File|*.mgsvgz";
             DialogResult saveResult = saveMod.ShowDialog();
             if (saveResult != DialogResult.OK) return;
 
