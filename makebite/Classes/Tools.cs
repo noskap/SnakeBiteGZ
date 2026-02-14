@@ -13,24 +13,12 @@ namespace SnakeBite
     public static class Tools
     {
         internal static List<string> ignoreFileList = new List<string>(new string[] {
-            "mgsvtpp.exe",
             "MgsGroundZeroes.exe",
-            "mgsvmgo.exe",
             "steam_api64.dll",
             "steam_appid.txt",
             "version_info.txt",
-            "chunk0.dat",
-            "chunk1.dat",
-            "chunk2.dat",
-            "chunk3.dat",
-            "chunk0.dat",
-            "texture0.dat",
-            "texture1.dat",
-            "texture2.dat",
-            "texture3.dat",
-            "texture4.dat",
-            "00.dat",
-            "01.dat",
+            "data_01.g0s",
+            "data_02.g0s",
             "snakebite.xml"
         });
 

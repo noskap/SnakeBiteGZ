@@ -1,387 +1,229 @@
 ﻿// SYNC to makebite
-using GzsTool.Core.Common;
-using GzsTool.Core.Common.Interfaces;
-using GzsTool.Core.Fpk;
-using GzsTool.Core.Qar;
-using GzsTool.Core.Utility;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Xml.Linq;
 
 namespace SnakeBite.GzsTool
 {
     public static class GzsLib
     {
-        //GAMEVERSION: qar flags, should be updated to games flags (use gzstool on unmodded .dat and check flags)
-        public static uint zeroFlags = 3150304;
-        public static uint oneFlags = 3150048;
-        public static uint chunk0Flags = 3146208;
-        public static uint chunk7Flags = 3146208;
-        public static uint texture7Flags = 3150048;
+        // GZS Tool CLI wrapper implementation
+        private const string GzsToolExe = "GzsTool.exe";
 
-        //tex see SortFpksFiles
-        //fpk,fpkd in extension sort order
-        //from ExtensionOrder.lua run of combined tpp,mgo,ssd fpks. However since some of the extensions don't have clear links it's at the mercy of whatever the topo sort algo decided to do
-        //RegisterPackageExtensionInfo call seems to mostly match derived fpkd order in reverse - however clo doesnt fit the order and lng isn't in its table.
+        public static uint zeroFlags = 3150304; // Keep flags for reference, though CLI handles repacking via XML
+        public static uint oneFlags = 3150048;
+        public static uint chunk0Flags = 3150304; // Re-use zeroFlags for now
+        public static uint chunk7Flags = 3150304;
+        public static uint texture7Flags = 3150304;
+
         private static Dictionary<string, List<string>> archiveExtensions = new Dictionary<string, List<string>> {
-            {"dat",new List<string> {
-                "bnk",
-                "dat",
-                "ffnt",
-                "fmtt",
-                "fpk",
-                "fpkd",
-                "fsm",
-                "fsop",
-                "ftex",
-                "ftexs",
-                "json",
-                "lua",
-                "pftxs",
-                "sbp",
-                "subp",
-                "wem",
+            {"dat",new List<string> { // TPP legacy
+                "bnk", "dat", "ffnt", "fmtt", "fpk", "fpkd", "fsm", "fsop", "ftex", "ftexs",
+                "json", "lua", "pftxs", "sbp", "subp", "wem",
+            }},
+            {"g0s",new List<string> { // GZ
+                "bnk", "dat", "ffnt", "fmtt", "fpk", "fpkd", "fsm", "fsop", "ftex", "ftexs",
+                "json", "lua", "pftxs", "sbp", "subp", "wem",
             }},
             {"fpk",new List<string> {
-                "caar",
-                "fnt",
-                "atsh",
-                "frig",
-                "adm",
-                "frt",
-                "fpkl",
-                "fsm",
-                "ftdp",
-                "geobv",
-                "ftex",
-                "geoms",
-                "gimr",
-                "gpfp",
-                "grxla",
-                "grxoc",
-                "htre",
-                "lba",
-                "lpsh",
-                "mog",
-                "mtar",
-                "nav2",
-                "nta",
-                "rdf",
-                "ends",
-                "sand",
-                "mbl",
-                "tcvp",
-                "spch",
-                "trap",
-                "uigb",
-                "uilb",
-                "pcsp",
-                "tre2",
-                "fstb",
-                "twpf",
-                "fv2t",
-                "fmdl",
-                "geom",
-                "gskl",
-                "fcnp",
-                "frdv",
-                "fdes",
-                "fclo",
-                "uif",
-                "uia",
-                "subp",
-                "sani",
-                "ladb",
-                "frl",
-                "fv2",
-                "obr",
-                "lng2",
-                "mtard",
-                "obrb",
-                "dfrm"
+                "caar", "fnt", "atsh", "frig", "adm", "frt", "fpkl", "fsm", "ftdp", "geobv",
+                "ftex", "geoms", "gimr", "gpfp", "grxla", "grxoc", "htre", "lba", "lpsh", "mog",
+                "mtar", "nav2", "nta", "rdf", "ends", "sand", "mbl", "tcvp", "spch", "trap",
+                "uigb", "uilb", "pcsp", "tre2", "fstb", "twpf", "fv2t", "fmdl", "geom", "gskl",
+                "fcnp", "frdv", "fdes", "fclo", "uif", "uia", "subp", "sani", "ladb", "frl",
+                "fv2", "obr", "lng2", "mtard", "obrb", "dfrm"
             }},
-              {"fpkd",new List<string> {
-                "fox2",
-                "evf",
-                "parts",
-                "vfxlb",
-                "vfx",
-                "vfxlf",
-                "veh",
-                "frld",
-                "des",
-                "bnd",
-                "tgt",
-                "phsd",
-                "ph",
-                "sim",
-                "clo",
-                "fsd",
-                "sdf",
-                "lua",
-                "lng",
+            {"fpkd",new List<string> {
+                "fox2", "evf", "parts", "vfxlb", "vfx", "vfxlf", "veh", "frld", "des", "bnd",
+                "tgt", "phsd", "ph", "sim", "clo", "fsd", "sdf", "lua", "lng",
             }},
         };
 
         static Dictionary<string, string> extensionToType = new Dictionary<string, string> {
             {"dat", "QarFile"},
+            {"g0s", "QarFile"},
             {"fpk", "FpkFile" },
             {"fpkd", "FpkFile" },
         };
 
+        // Run GzsTool.exe via CLI
+        private static bool RunGzsTool(string arguments)
+        {
+            string toolLocation = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, GzsToolExe);
+            if (!File.Exists(toolLocation))
+            {
+                Debug.LogLine(String.Format("[GzsLib] Tool not found: {0}", toolLocation));
+                return false;
+            }
+
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = toolLocation,
+                Arguments = arguments,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+                WorkingDirectory = AppDomain.CurrentDomain.BaseDirectory
+            };
+
+            Debug.LogLine(String.Format("[GzsLib] Running: {0} {1}", GzsToolExe, arguments));
+
+            using (Process process = Process.Start(startInfo))
+            {
+                process.WaitForExit();
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+                
+                if (!string.IsNullOrEmpty(output)) Debug.LogLine(String.Format("[GzsTool] {0}", output));
+                if (!string.IsNullOrEmpty(error)) Debug.LogLine(String.Format("[GzsTool Error] {0}", error));
+
+                return process.ExitCode == 0;
+            }
+        }
+
         // Extract full archive
-        public static List<string> ExtractArchive<T>(string FileName, string OutputPath) where T : ArchiveFile, new()
+        public static List<string> ExtractArchive<T>(string FileName, string OutputPath) where T : new() 
         {
             if (!File.Exists(FileName))
             {
                 Debug.LogLine(String.Format("[GzsLib] File not found: {0}", FileName));
                 throw new FileNotFoundException();
             }
-            else
+
+            string name = Path.GetFileName(FileName);
+            Debug.LogLine(String.Format("[GzsLib] Extracting {0} to {1} ({2} KB)", name, OutputPath, Tools.GetFileSizeKB(FileName)));
+
+            if(RunGzsTool(String.Format("\"{0}\"", FileName)))
             {
-                string name = Path.GetFileName(FileName);
-                Debug.LogLine(String.Format("[GzsLib] Extracting {0} to {1} ({2} KB)", name, OutputPath, Tools.GetFileSizeKB(FileName)));
+                string expectedDirName = Path.GetFileName(FileName).Replace(".", "_");
+                string sourceDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
 
-                using (FileStream archiveFile = new FileStream(FileName, FileMode.Open))
+                if (Directory.Exists(sourceDir))
                 {
-                    List<string> outFiles = new List<string>();
-                    T archive = new T();
-                	archive.Name = Path.GetFileName(FileName);
-                    archive.Read(archiveFile);
-
-                    // Extract all files
-                    var exportedFiles = archive.ExportFiles(archiveFile);
-                    foreach (var v in exportedFiles)
-                    {
-                        string outDirectory = Path.Combine(OutputPath, Path.GetDirectoryName(v.FileName));
-                        string outFileName = Path.Combine(OutputPath, v.FileName);
-                        if (!Directory.Exists(outDirectory)) Directory.CreateDirectory(outDirectory);
-                        using (FileStream outStream = new FileStream(outFileName, FileMode.Create))
-                        {
-                            // copy to output stream
-                            v.DataStream().CopyTo(outStream);
-                            outFiles.Add(v.FileName);
-                        }
-                    }
-                    Debug.LogLine(String.Format("[GzsLib] Extracted {0} files from {1}", outFiles.Count, name));
-                    return outFiles;
+                    if (Directory.Exists(OutputPath)) Directory.Delete(OutputPath, true);
+                    Directory.Move(sourceDir, OutputPath);
+                    
+                    return Directory.GetFiles(OutputPath, "*", SearchOption.AllDirectories)
+                                    .Select(f => f.Replace(OutputPath + "\\", "").Replace("\\", "/")) 
+                                    .ToList();
                 }
-            }
-        }
-
-        // Extract single file from archive
-        public static bool ExtractFile<T>(string SourceArchive, string FilePath, string OutputFile) where T : ArchiveFile, new()
-        {
-            if (!File.Exists(SourceArchive))
-            {
-                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", SourceArchive));
-                throw new FileNotFoundException();
-            }
-            else
-            {
-                Debug.LogLine(String.Format("[GzsLib] Extracting file {1}: {0} -> {2}", FilePath, SourceArchive, OutputFile));
-                // Get file hash from path
-                ulong fileHash = Tools.NameToHash(FilePath);
-
-                using (FileStream archiveFile = new FileStream(SourceArchive, FileMode.Open))
+                else
                 {
-                    T archive = new T();
-                    archive.Name = Path.GetFileName(SourceArchive);
-                    archive.Read(archiveFile);
-
-                    // Select single file for output
-                    var outFile = archive.ExportFiles(archiveFile).FirstOrDefault(entry => Tools.NameToHash(entry.FileName) == fileHash);
-
-                    if (outFile != null)
-                    {
-                        string path = Path.GetDirectoryName(Path.GetFullPath(OutputFile));
-                        if (!Directory.Exists(path)) Directory.CreateDirectory(path);
-                        using (FileStream outStream = new FileStream(OutputFile, FileMode.Create))
-                        {
-                            // copy to output stream
-                            outFile.DataStream().CopyTo(outStream);
-                        }
-                        return true;
-                    }
-                    else
-                    {
-                        // file not found
-                        return false;
-                    }
+                    Debug.LogLine(String.Format("[GzsLib] Expected output directory not found: {0}", sourceDir));
                 }
             }
             
+            return new List<string>();
         }
 
-        // Extract single file from archive
-        public static bool ExtractFileByHash<T>(string SourceArchive, ulong FileHash, string OutputFile) where T : ArchiveFile, new()
+        public static bool ExtractFile<T>(string SourceArchive, string FilePath, string OutputFile) where T : new()
         {
-            if (!File.Exists(SourceArchive))
+            string tempDir = Path.Combine(Path.GetDirectoryName(SourceArchive), "temp_extract_" + Guid.NewGuid());
+            try 
             {
-                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", SourceArchive));
-                throw new FileNotFoundException();
-            }
-            else
-            {
-                Debug.LogLine(String.Format("[GzsLib] Extracting file from {1}: hash {0} -> {2}", FileHash, SourceArchive, OutputFile));
-                // Get file hash from path
-                ulong fileHash = FileHash;
-
-                using (FileStream archiveFile = new FileStream(SourceArchive, FileMode.Open))
+                List<string> extractedFiles = ExtractArchive<T>(SourceArchive, tempDir);
+                string wantedFile = Path.Combine(tempDir, Tools.ToWinPath(FilePath));
+                
+                if (File.Exists(wantedFile))
                 {
-                    T archive = new T();
-                    archive.Name = Path.GetFileName(SourceArchive);
-                    archive.Read(archiveFile);
-
-                    // Select single file for output
-                    var outFile = archive.ExportFiles(archiveFile).FirstOrDefault(entry => Tools.NameToHash(entry.FileName) == fileHash);
-
-                    if (outFile != null)
-                    {
-                        if (!Directory.Exists(Path.GetDirectoryName(OutputFile))) Directory.CreateDirectory(Path.GetDirectoryName(OutputFile));
-                        using (FileStream outStream = new FileStream(OutputFile, FileMode.Create))
-                        {
-                            // copy to output stream
-                            outFile.DataStream().CopyTo(outStream);
-                        }
-                        return true;
-                    }
-                    else
-                    {
-                        // file not found
-                        return false;
-                    }
+                    string outDir = Path.GetDirectoryName(OutputFile);
+                    if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
+                    File.Copy(wantedFile, OutputFile, true);
+                    return true;
                 }
+                return false;
             }
-            
+            finally
+            {
+                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+            }
         }
 
-        public static T ReadArchive<T>(string FileName) where T : ArchiveFile, new() {
-            if (!File.Exists(FileName)) {
-                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", FileName));
-                throw new FileNotFoundException();
-            } else {
-                string name = Path.GetFileName(FileName);
-                Debug.LogLine(String.Format("[GzsLib] Reading {0})", name));
-
-                using (FileStream archiveFile = new FileStream(FileName, FileMode.Open)) {
-                    List<string> outFiles = new List<string>();
-                    T archive = new T();
-                    archive.Name = Path.GetFileName(FileName);
-                    archive.Read(archiveFile);
-                    return archive;
-                }//using fileStream
-            }//if File.Exists
-        }//ReadArchive
-
-        public static List<string> GetFpkReferences(string fpkPath) {
-            var fpkReferences = new List<string>();
-            FpkFile fpkFile = GzsLib.ReadArchive<FpkFile>(fpkPath);
-            foreach (var reference in fpkFile.References) {
-                fpkReferences.Add(reference.FilePath);
-            }
-            return fpkReferences;
-        }//GetFpkReferences
-
-        // Read file hashes contained within QAR archive
-        public static List<GameFile> ListArchiveHashes<T>(string ArchiveName) where T : ArchiveFile, new()
+        public static bool ExtractFileByHash<T>(string SourceArchive, ulong FileHash, string OutputFile) where T : new()
         {
-            if (!File.Exists(ArchiveName))
-            {
-                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", ArchiveName));
-                throw new FileNotFoundException();
-            }
-            else
-            {
-                string name = Path.GetFileName(ArchiveName);
-                Debug.LogLine(String.Format("[GzsLib] Reading archive contents: {0} ({1} KB)", name, Tools.GetFileSizeKB(ArchiveName)));
-                using (FileStream archiveFile = new FileStream(ArchiveName, FileMode.Open))
-                {
-                    List<GameFile> archiveContents = new List<GameFile>();
-                    T archive = new T();
-                	archive.Name = Path.GetFileName(ArchiveName);
-                    archive.Read(archiveFile);
-                    foreach (var x in archive.ExportFiles(archiveFile))
-                    {
-                        archiveContents.Add(new GameFile() { FilePath = x.FileName, FileHash = Tools.NameToHash(x.FileName), QarFile = archive.Name });
-                    }
-                    return archiveContents;
-                }
-            }
+             string filePath;
+             if (HashingExtended.TryGetFilePathFromHash(FileHash, out filePath))
+             {
+                 return ExtractFile<T>(SourceArchive, filePath, OutputFile);
+             }
+             return false;
         }
 
-        /// <summary>
-        /// return gamefiles by hash for given qar
-        /// does not include texture qars since it's currently only really used to look up fpks/archive files
-        /// </summary>
         public static Dictionary<ulong, GameFile> GetQarGameFiles(string qarPath)
         {
-            if (!File.Exists(qarPath))
+            var result = new Dictionary<ulong, GameFile>();
+            string tempDir = Path.Combine(Path.GetDirectoryName(qarPath), "temp_read_" + Guid.NewGuid());
+            try 
             {
-                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", qarPath));
-                throw new FileNotFoundException();
-            }
-            else
-            {
-                string name = Path.GetFileName(qarPath);
-                Debug.LogLine(String.Format("[GzsLib] Reading archive contents: {0}", name));
-                using (FileStream archiveFile = new FileStream(qarPath, FileMode.Open))
+                var files = ExtractArchive<object>(qarPath, tempDir);
+                foreach(var file in files)
                 {
-                    var qarFiles = new Dictionary<ulong, GameFile>();
-                    var qarFile = new QarFile();
-                qarFile.Name = Path.GetFileName(qarPath);
-                    qarFile.Read(archiveFile);
-                    foreach (QarEntry entry in qarFile.Entries)
-                    {
-                        qarFiles[entry.Hash] = new GameFile() { FilePath = entry.FilePath, FileHash = entry.Hash, QarFile = qarFile.Name };
-                    }
-                    return qarFiles;
+                    ulong hash = HashingExtended.HashFileName(file);
+                    result[hash] = new GameFile { FilePath = file, FileHash = hash, QarFile = Path.GetFileName(qarPath) };
                 }
             }
+            finally
+            {
+                 if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+            }
+            return result;
         }
-
-
-        /// <summary>
-        /// Returns list of files within archive
-        /// </summary>
-        /// <typeparam name="T">GzsTool archive type</typeparam>
-        /// <param name="ArchiveName">Path to archive</param>
-        /// <returns>list of files within archive</returns>
-        public static List<string> ListArchiveContents<T>(string ArchiveName) where T : ArchiveFile, new()
+        
+        public static List<string> ListArchiveContents<T>(string ArchiveName) where T : new()
         {
-            if (!File.Exists(ArchiveName))
-            {
-                Debug.LogLine(String.Format("[GzsLib] File not found: {0}", ArchiveName));
-                throw new FileNotFoundException();
-            }
-            else
-            {
-                string name = Path.GetFileName(ArchiveName);
-                Debug.LogLine(String.Format("[GzsLib] Reading archive contents: {0}", name));
-                using (FileStream archiveFile = new FileStream(ArchiveName, FileMode.Open))
-                {
-                    List<string> archiveContents = new List<string>();
-                    T archive = new T();
-                archive.Name = Path.GetFileName(ArchiveName);
-                    archive.Read(archiveFile);
-                    foreach (var x in archive.ExportFiles(archiveFile))
-                    {
-                        archiveContents.Add(x.FileName);
-                    }
-                    return archiveContents;
-                }
-            }
+             string tempDir = Path.Combine(Path.GetDirectoryName(ArchiveName), "temp_read_" + Guid.NewGuid());
+             try 
+             {
+                 return ExtractArchive<T>(ArchiveName, tempDir);
+             }
+             finally
+             {
+                  if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+             }
+        }
+        
+        public static List<string> GetFpkReferences(string fpkPath) {
+             string tempDir = Path.Combine(Path.GetDirectoryName(fpkPath), "temp_read_fpk_" + Guid.NewGuid());
+             string xmlPath = fpkPath + ".xml"; 
+             
+             List<string> references = new List<string>();
+             
+             try
+             {
+                 if(RunGzsTool(String.Format("\"{0}\"", fpkPath)))
+                 {
+                     if (File.Exists(xmlPath))
+                     {
+                         XDocument doc = XDocument.Load(xmlPath);
+                         var refs = doc.Descendants("Reference");
+                         foreach(var r in refs)
+                         {
+                             var attr = r.Attribute("FilePath");
+                             if (attr != null) references.Add(attr.Value);
+                         }
+                         File.Delete(xmlPath);
+                     }
+                 }
+                 
+                 string expectedDirName = Path.GetFileName(fpkPath).Replace(".", "_");
+                 string sourceDir = Path.Combine(Path.GetDirectoryName(fpkPath), expectedDirName);
+                 if (Directory.Exists(sourceDir)) Directory.Delete(sourceDir, true);
+             }
+             catch(Exception ex)
+             {
+                 Debug.LogLine(String.Format("[GzsLib] Error getting FPK references: {0}", ex.Message));
+             }
+             
+             return references;
         }
 
-        /// <summary>
-        /// Load filename dictionaries into Hashing
-        /// </summary>
         public static void LoadDictionaries()
         {
             Debug.LogLine("[GzsLib] Loading base dictionaries");
-            Hashing.ReadDictionary("qar_dictionary.txt");
-            Hashing.ReadMd5Dictionary("fpk_dictionary.txt");
             HashingExtended.ReadDictionary();
 
 #if SNAKEBITE
@@ -390,61 +232,39 @@ namespace SnakeBite.GzsTool
         }
 
 #if SNAKEBITE
-        /// <summary>
-        /// Adds filenames to Hashing dictionaries
-        /// </summary>
         public static void LoadModDictionaries()
         {
             SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
-            //fpk dictionary only really needed for gz
-            //var FpkNames = manager.GetModFpkFiles();
             var QarNames = manager.GetModQarFiles(true);
-
-            //File.WriteAllLines("mod_fpk_dict.txt", FpkNames);
             File.WriteAllLines("mod_qar_dict.txt", QarNames);
-
-            //Hashing.ReadMd5Dictionary("mod_fpk_dict.txt");
-            Hashing.ReadDictionary("mod_qar_dict.txt");
+            HashingExtended.ReadDictionary("mod_qar_dict.txt"); // Was Hashing.ReadDictionary
         }
 
-        /// <summary>
-        /// Adds qar filenames to Hashing dictionary for given modentry
-        /// </summary>
         public static void LoadModDictionary(ModEntry modEntry)
         {
             Debug.LogLine("[GzsLib] Loading mod dictionary");
-
             List<string> qarNames = new List<string>();
             foreach (ModQarEntry qarFile in modEntry.ModQarEntries)
             {
                 string fileName = Tools.ToQarPath(qarFile.FilePath.Substring(0, qarFile.FilePath.IndexOf(".")));
                 qarNames.Add(fileName);
             }
-
             File.WriteAllLines("mod_qar_dict.txt", qarNames);
-            Hashing.ReadDictionary("mod_qar_dict.txt");
+            HashingExtended.ReadDictionary("mod_qar_dict.txt");
         }
 
-        // Gets contents of most game dats
-        // Returns list (in game file priority order) of hash,GameFile dictionaries
         public static List<Dictionary<ulong, GameFile>> ReadBaseData()
         {
             Debug.LogLine("[GzsLib] Acquiring base game data");
 
+            // Updated for GZ
             var baseDataFiles = new List<Dictionary<ulong, GameFile>>();
-            string dataDir = Path.Combine(GamePaths.GameDir, "master");
+            string dataDir = GamePaths.GameDir; // GZ data is in root, not master
 
-            //in priority order SYNC with or read foxfs.dat directly
             var qarFileNames = new List<string> {
-                "a_chunk7.dat",
-                "data1.dat",
-                "chunk0.dat",
-                "chunk1.dat",
-                "chunk2.dat",
-                "chunk3.dat",
-                "chunk4.dat",
-                "chunk5_mgo0.dat",
-                "chunk6_gzs0.dat",
+                // "data_00.g0s",  // tpp trailer, wmv file 
+                "data_01.g0s", 
+                "data_02.g0s",
             };
 
             foreach (var qarFileName in qarFileNames)
@@ -455,7 +275,7 @@ namespace SnakeBite.GzsTool
                     Debug.LogLine(String.Format("[GzsLib] Could not find {0}", path));
                 } else
                 {
-                    var qarGameFiles = GetQarGameFiles(Path.Combine(dataDir, path));
+                    var qarGameFiles = GetQarGameFiles(path); 
                     baseDataFiles.Add(qarGameFiles);
                 }
             }
@@ -463,53 +283,113 @@ namespace SnakeBite.GzsTool
             return baseDataFiles;
         }
 #endif
-        // Export FPK archive with specified parameters
+
         public static void WriteFpkArchive(string FileName, string SourceDirectory, List<string> Files, List<string> references)
         {
-            Debug.LogLine(String.Format("[GzsLib] Writing FPK archive: {0}", FileName));
-            //tex smakebite for a for a long time (till 2021) only created fpkds with the FpkType as Fpk
-            //to no obvious issue with fox engine (and I wouldn't think FpkType would be used, maybe for some editor/data managment stuff, but wouldn't imagine it being used for runtime).
-            string fpkType = FileName.EndsWith(".fpkd") ? "fpkd" : "fpk";
-            List<string> fpkFilesSorted = SortFpksFiles(fpkType, Files);
-
-            FpkFile q = new FpkFile() { Name = FileName, FpkType = (fpkType == "fpkd" ? FpkType.Fpkd : FpkType.Fpk) };
-            foreach (string s in fpkFilesSorted)
-            {
-                q.Entries.Add(new FpkEntry() { FilePath = Tools.ToQarPath(s) });
-            }
-            //tex likewise smakebite didn't write/preserve references, to no apparent issue for fox.
-            foreach (string fpk in references) 
-            {
-                FpkReference reference = new FpkReference() { 
-                    ReferenceFilePath = new FpkString() { Value = fpk } };
-                q.References.Add(reference);
-            }
-
-            using (FileStream outFile = new FileStream(FileName, FileMode.Create))
-            {
-                IDirectory fileDirectory = new FileSystemDirectory(SourceDirectory);
-                q.Write(outFile, fileDirectory);
-            }
+             Debug.LogLine(String.Format("[GzsLib] Writing FPK archive: {0}", FileName));
+             
+             string fpkType = FileName.EndsWith(".fpkd") ? "fpkd" : "fpk";
+             
+             XElement entries = new XElement("Entries");
+             foreach(string s in Files)
+             {
+                 entries.Add(new XElement("Entry", new XAttribute("FilePath", Tools.ToQarPath(s))));
+             }
+             
+             XElement refs = new XElement("References");
+             if(references != null)
+             {
+                 foreach(string r in references)
+                 {
+                     refs.Add(new XElement("Reference", new XAttribute("FilePath", r)));
+                 }
+             }
+             
+             XDocument doc = new XDocument(
+                 new XElement("FpkFile", 
+                    new XAttribute("Name", Path.GetFileName(FileName)), 
+                    entries,
+                    refs
+                 )
+             );
+             
+             string xmlPath = FileName + ".xml";
+             doc.Save(xmlPath);
+             
+             string expectedDirName = Path.GetFileName(FileName).Replace(".", "_");
+             string destinationDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
+             
+             if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
+             {
+                 if(Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
+                 Directory.Move(SourceDirectory, destinationDir); 
+             }
+             
+             RunGzsTool(String.Format("\"{0}\"", xmlPath));
+             
+             if(File.Exists(xmlPath)) File.Delete(xmlPath);
+             
+              if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
+             {
+                 Directory.Move(destinationDir, SourceDirectory); 
+             }
         }
 
-        // Export QAR archive with specified parameters
         public static void WriteQarArchive(string FileName, string SourceDirectory, List<string> Files, uint Flags)
         {
-            Debug.LogLine(String.Format("[GzsLib] Writing {0}", Path.GetFileName(FileName)));
-            List<QarEntry> qarEntries = new List<QarEntry>();
-            foreach (string s in Files)
-            {
-                if (s.EndsWith("_unknown")) { continue; }
-                qarEntries.Add(new QarEntry() { FilePath = s, Hash = Tools.NameToHash(s), Compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd")) ? true : false });
-            }
+             Debug.LogLine(String.Format("[GzsLib] Writing archive: {0}", FileName));
+             
+             XElement entries = new XElement("Entries");
+             foreach(string s in Files)
+             {
+                 if (s.EndsWith("_unknown")) { continue; }
+                 bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); 
+                 entries.Add(new XElement("Entry", 
+                    new XAttribute("FilePath", s),
+                    new XAttribute("Compressed", compressed),
+                    new XAttribute("Hash", Tools.NameToHash(s)) 
+                 ));
+             }
+             
+             XDocument doc = new XDocument(
+                 new XElement("QarFile", 
+                    new XAttribute("Name", Path.GetFileName(FileName)),
+                    new XAttribute("Flags", Flags),
+                    entries
+                 )
+             );
+             
+             string xmlPath = FileName + ".xml";
+             doc.Save(xmlPath);
 
-            QarFile q = new QarFile() { Entries = qarEntries, Flags = Flags, Name = FileName };
+             string expectedDirName = Path.GetFileName(FileName).Replace(".", "_");
+             string destinationDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
 
-            using (FileStream outFile = new FileStream(FileName, FileMode.Create))
-            {
-                IDirectory fileDirectory = new FileSystemDirectory(SourceDirectory);
-                q.Write(outFile, fileDirectory);
-            }
+             bool moved = false;
+             if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
+             {
+                 if (Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
+                 Util.MoveDirectory(SourceDirectory, destinationDir); 
+                 moved = true;
+             }
+             
+             RunGzsTool(String.Format("\"{0}\"", xmlPath));
+
+             if(File.Exists(xmlPath)) File.Delete(xmlPath);
+             
+             if (moved)
+             {
+                 Util.MoveDirectory(destinationDir, SourceDirectory);
+             }
+        }
+        
+        private static class Util 
+        {
+             public static void MoveDirectory(string source, string dest)
+             {
+                 if (Directory.Exists(dest)) Directory.Delete(dest, true);
+                 Directory.Move(source, dest);
+             }
         }
 
         public static void PromoteQarArchive(string sourcePath, string destinationPath)
@@ -526,76 +406,46 @@ namespace SnakeBite.GzsTool
             }
         }
 
-        //SYNC: makebite
-        //tex fpkds seem to require a specific order to their files.
-        //Don't know whether this is also an issue for fpks, or other archives (are there any other archives with multiple filetypes?)
-        //Reproduction: Extract an unmodified fpkd (such as chunk0_dat\Assets\tpp\pack\mission2\init\init.fpkd, as it's loaded automatically and early) DEBUGNOW redo this test to confirm issue again
-        //change the order of the file entries in the .fpkd.xml so that they're not grouped by extension
-        //repack and the load the game
-        //game will fail to load
-        //as the issue doesn't seem to happen when there are no fox2s in fpkd VERIFY
-        //it might simply be that the first entries must be fox2s?
-        //Furthermore, entries are also sorted alphanumeric ordinal - ascending for fpk, descending for fpkd for some reason, but (lua at the very least) loaded in alpha ascending
-        //Reproduction: have two lua files, one referencing the other (or rather a field of the other ie somescript.somevar) directly in its load time script (ie not hidden in a function) - (this also suggests that lua files are just loaded to fpkd order rather than having a load order specified anywhere) DEBUGNOW actually test lol
-        //Or just hook luaL_loadbuffer and see the load order for a vanilla file.
-        //GOTCHA: This mean there's a currently unresolved (unresolvable?) problem of mixing in hashed entries as you can't know their position. Though that's only an issue for GZ fpks? (and s/makebite isn't for gz)
-        //GOTCHA: while archiveExtensions is a good effort at reconstructing order by examining exising files, it doesn't have full coverage 
-        //as some extensions can only be reconsructed in unconnected groups, so the placement of those in the overall order are just at the whim of whatever the topo algo put them at
-        //Some lua scripts reference some extensions: RegisterExtensionInfo, RegisterPackageExtensionInfo
-        //however only some of the extensions match observed fpk file order.
-        //The only real solution here is if the fox engine fpk loader has an apparent reversable load order.
-        //As it currently stands (2021-02-20) it (via BuildFpk) repacks all vanilla tpp,mgo,sdd fpk files (provided that fpk.References are coppied) to binary identical files. (except for fpkds with lua since gzslib doesnt reencrypt).
         public static List<string> SortFpksFiles(string FpkType, List<string> fpkFiles)
         {
-            if (fpkFiles.Count <= 1) {
-                return fpkFiles;
-                    }
-
-            //tex sorted by alpha as per vanilla
-            if (FpkType == "fpk") {
-                fpkFiles.Sort(StringComparer.Ordinal);
-            } else {
-                //fpkd is alpha descending for some reason
-                fpkFiles.Sort((a, b) => string.CompareOrdinal(b, a));
-                    }
-
-            //tex add to sorted list by extension order
+            if (fpkFiles.Count <= 1) return fpkFiles;
+            
+            if (FpkType == "fpk") fpkFiles.Sort(StringComparer.Ordinal);
+            else fpkFiles.Sort((a, b) => string.CompareOrdinal(b, a));
+            
             var fpkFilesSorted = new List<string>();
-            foreach (var archiveExtension in archiveExtensions[FpkType]) {
-                foreach (string fileName in fpkFiles) {
-                    var fileExtension = Path.GetExtension(fileName).Substring(1);
-                    if (archiveExtension==fileExtension) {
-                                fpkFilesSorted.Add(fileName);
-                            }
+            if (archiveExtensions.ContainsKey(FpkType))
+            {
+                foreach (var archiveExtension in archiveExtensions[FpkType]) {
+                    foreach (string fileName in fpkFiles) {
+                        var fileExtension = Path.GetExtension(fileName).TrimStart('.');
+                        if (archiveExtension == fileExtension) {
+                            fpkFilesSorted.Add(fileName);
                         }
                     }
+                }
+            }
             return fpkFilesSorted;
-        }// SortFpksFiles
+        }
 
         public static bool IsExtensionValidForArchive(string fileName, string archiveName)
         {
             var archiveExtension = Path.GetExtension(archiveName).TrimStart('.');
+            if (!archiveExtensions.ContainsKey(archiveExtension)) 
+            {
+                if (archiveExtension == "g0s") archiveExtension = "dat"; 
+                else return true; 
+            }
+            
+            if (!archiveExtensions.ContainsKey(archiveExtension)) return true;
+
             var validExtensions = archiveExtensions[archiveExtension];
             var ext = Path.GetExtension(fileName).TrimStart('.');
-            bool isValid = false;
-            foreach (var validExt in validExtensions)
-            {
-                if (ext == validExt)
-                {
-                    isValid = true;
-                    break;
-                }
-            }
-            if (!isValid)
-            {
-                return false;
-            }
-            return true;
+            return validExtensions.Contains(ext);
         }
     }
-
-    // Hashing snippet to check outdated filenames
-    public static class HashingExtended
+    
+       public static class HashingExtended
     {
         private static readonly Dictionary<ulong, string> HashNameDictionary = new Dictionary<ulong, string>();
 
@@ -603,6 +453,7 @@ namespace SnakeBite.GzsTool
 
         public static void ReadDictionary(string path = "qar_dictionary.txt")
         {
+            if (!File.Exists(path)) return;
             foreach (var line in File.ReadAllLines(path))
             {
                 ulong hash = HashFileName(line) & 0x3FFFFFFFFFFFF;
@@ -615,10 +466,10 @@ namespace SnakeBite.GzsTool
 
         public static string UpdateName(string inputFile)
         {
-            string filename = Path.GetFileNameWithoutExtension(inputFile);
+             string filename = Path.GetFileNameWithoutExtension(inputFile);
             string ext = Path.GetExtension(inputFile);
             string extInner = "";
-            if (filename.Contains(".")) // Ex: .1.ftexs, .eng.lng
+            if (filename.Contains(".")) 
             {
                 extInner = Path.GetExtension(filename);
                 filename = Path.GetFileNameWithoutExtension(filename);
@@ -638,9 +489,9 @@ namespace SnakeBite.GzsTool
             return null;
         }
 
-        private static ulong HashFileName(string text, bool removeExtension = true)
+        public static ulong HashFileName(string text, bool removeExtension = true)
         {
-            if (removeExtension)
+              if (removeExtension)
             {
                 int index = text.IndexOf('.');
                 text = index == -1 ? text : text.Substring(0, index);
@@ -678,17 +529,9 @@ namespace SnakeBite.GzsTool
                 : maskedHash;
         }
 
-        private static bool TryGetFilePathFromHash(ulong hash, out string filePath)
+        public static bool TryGetFilePathFromHash(ulong hash, out string filePath)
         {
-            bool foundFileName = true;
-            ulong pathHash = hash & 0x3FFFFFFFFFFFF;
-
-            if (!HashNameDictionary.TryGetValue(pathHash, out filePath))
-            {
-                foundFileName = false;
-            }
-
-            return foundFileName;
+             return HashNameDictionary.TryGetValue(hash & 0x3FFFFFFFFFFFF, out filePath);
         }
 
         private static bool TryGetFileNameHash(string filename, out ulong fileNameHash)
