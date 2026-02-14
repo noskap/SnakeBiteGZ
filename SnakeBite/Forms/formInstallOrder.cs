@@ -212,7 +212,7 @@ namespace SnakeBite.Forms
         {
 
             OpenFileDialog openModFile = new OpenFileDialog();
-            openModFile.Filter = "SnakeBite GZ Mod Files|*.mgsvgz|All Files|*.*";
+            openModFile.Filter = "SnakeBite GZ Mod Files (*.mgsvgz)|*.mgsvgz|All Files (*.*)|*.*";
             openModFile.Multiselect = true;
             
             DialogResult ofdResult = openModFile.ShowDialog();

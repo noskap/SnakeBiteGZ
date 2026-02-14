@@ -104,8 +104,11 @@ namespace SnakeBite.GzsTool
 
                 if (Directory.Exists(sourceDir))
                 {
-                    if (Directory.Exists(OutputPath)) Directory.Delete(OutputPath, true);
-                    Directory.Move(sourceDir, OutputPath);
+                    if (Path.GetFullPath(sourceDir).TrimEnd('\\') != Path.GetFullPath(OutputPath).TrimEnd('\\'))
+                    {
+                        if (Directory.Exists(OutputPath)) Directory.Delete(OutputPath, true);
+                        Directory.Move(sourceDir, OutputPath);
+                    }
                     
                     return Directory.GetFiles(OutputPath, "*", SearchOption.AllDirectories)
                                     .Select(f => f.Replace(OutputPath + "\\", "").Replace("\\", "/")) 

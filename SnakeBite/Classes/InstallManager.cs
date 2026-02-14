@@ -45,11 +45,35 @@ namespace SnakeBite
             List<string> oneFiles = new List<string>(); // data_01
             List<string> twoFiles = new List<string>(); // data_02
 
-            bool hasData01 = ModManager.hasQarZeroFiles(installEntryList) || ModManager.foundLooseFtexs(installEntryList); // Reusing check but applying to data_01/02
-            // Actually hasQarZeroFiles checked for non-ftex files.
-            // In our mapping: non-ftex -> data_02. ftex -> data_01.
-            
-            bool hasData02 = ModManager.hasQarZeroFiles(installEntryList); // non-ftex files go to data_02 now
+            bool hasData01 = false;
+            bool hasData02 = false;
+
+            // Updated logic to support 00/01/02 prefixes
+            foreach (var mod in installEntryList)
+            {
+                foreach (var entry in mod.ModQarEntries)
+                {
+                    string path = entry.FilePath;
+                    if (path.StartsWith("/00/") || path.StartsWith("\\00\\") || 
+                        path.StartsWith("/02/") || path.StartsWith("\\02\\"))
+                    {
+                        hasData02 = true;
+                    }
+                    else if (path.StartsWith("/01/") || path.StartsWith("\\01\\"))
+                    {
+                        hasData01 = true;
+                    }
+                    else
+                    {
+                        // Fallback
+                        if (path.EndsWith(".ftex") || path.EndsWith(".ftexs")) hasData01 = true;
+                        else hasData02 = true;
+                    }
+
+                    if (hasData01 && hasData02) break;
+                }
+                if (hasData01 && hasData02) break;
+            }
 
             if (hasData02)
             {
@@ -161,20 +185,38 @@ namespace SnakeBite
                 if (pathUpdatesExist[extractedModEntry.Name])
                 {
                     Debug.LogLine(string.Format("[Install] Checking for Qar path updates: {0}", extractedModEntry.Name), Debug.LogLevel.Basic);
-                    foreach (ModQarEntry modQar in extractedModEntry.ModQarEntries.Where(entry => !entry.FilePath.StartsWith("/Assets/")))
+                    foreach (ModQarEntry modQar in extractedModEntry.ModQarEntries)
                     {
-                        string unhashedName = HashingExtended.UpdateName(modQar.FilePath);
+                        string rawPath = modQar.FilePath;
+                        string prefix = "";
+                        string cleanPath = rawPath;
+
+                        if (rawPath.StartsWith("/00/") || rawPath.StartsWith("\\00\\") ||
+                            rawPath.StartsWith("/02/") || rawPath.StartsWith("\\02\\"))
+                        {
+                            prefix = rawPath.Substring(0, 4);
+                            cleanPath = rawPath.Substring(4);
+                        }
+                        else if (rawPath.StartsWith("/01/") || rawPath.StartsWith("\\01\\"))
+                        {
+                            prefix = rawPath.Substring(0, 4);
+                            cleanPath = rawPath.Substring(4);
+                        }
+
+                        if (!cleanPath.StartsWith("/Assets/")) continue;
+
+                        string unhashedName = HashingExtended.UpdateName(cleanPath);
                         if (unhashedName != null)
                         {
-                            Debug.LogLine(string.Format("[Install] Update successful: {0} -> {1}", modQar.FilePath, unhashedName), Debug.LogLevel.Basic);
+                            string newFullPath = prefix + unhashedName;
+                            Debug.LogLine(string.Format("[Install] Update successful: {0} -> {1}", modQar.FilePath, newFullPath), Debug.LogLevel.Basic);
 
                             string workingOldPath = Path.Combine("_extr", Tools.ToWinPath(modQar.FilePath));
-                            string workingNewPath = Path.Combine("_extr", Tools.ToWinPath(unhashedName));
+                            string workingNewPath = Path.Combine("_extr", Tools.ToWinPath(newFullPath));
                             if (!Directory.Exists(Path.GetDirectoryName(workingNewPath))) Directory.CreateDirectory(Path.GetDirectoryName(workingNewPath));
                             if (!File.Exists(workingNewPath)) File.Move(workingOldPath, workingNewPath);
 
-                            modQar.FilePath = unhashedName;
-
+                            modQar.FilePath = newFullPath;
                         }
                     }
                 }
@@ -182,11 +224,8 @@ namespace SnakeBite
                 GzsLib.LoadModDictionary(extractedModEntry);
                 ValidateModEntries(ref extractedModEntry);
 
-                Debug.LogLine("[Install] Check mod FPKs against game .dat fpks", Debug.LogLevel.Basic);
-                twoFiles.UnionWith(MergePacks(extractedModEntry, pullFromVanillas, pullFromMods));
-
-                Debug.LogLine("[Install] Copying loose textures to 01.", Debug.LogLevel.Basic);
-                InstallLooseFtexs(extractedModEntry, ref oneFilesList);
+                Debug.LogLine("[Install] Processing QAR entries...", Debug.LogLevel.Basic);
+                ProcessQarEntries(extractedModEntry, pullFromVanillas, pullFromMods, ref twoFiles, ref oneFilesList);
 
                 Debug.LogLine("[Install] Copying game dir files", Debug.LogLevel.Basic);
                 InstallGameDirFiles(extractedModEntry, ref gameData);
@@ -203,6 +242,115 @@ namespace SnakeBite
 
             //ZIP: Are we installing any mods containing custom WMVs? If so, update.
             if (isAddingWMV) ModManager.UpdateFoxfs(manager.GetInstalledMods());
+        }
+
+        private static void ProcessQarEntries(ModEntry extractedModEntry, List<string> pullFromVanillas, List<string> pullFromMods, ref HashSet<string> twoFiles, ref List<string> oneFiles)
+        {
+            foreach (ModQarEntry modQar in extractedModEntry.ModQarEntries)
+            {
+                // Determine target and strip path
+                string targetDir = "_working2"; // Default to data_02
+                string rawPath = modQar.FilePath; // e.g. /01/Assets/tpp/...
+                string installPath = rawPath;     // e.g. /Assets/tpp/...
+
+                bool forceOne = false;
+                bool forceTwo = false;
+
+                if (rawPath.StartsWith("/00/") || rawPath.StartsWith("\\00\\"))
+                {
+                    // data_00 support - for now redirect to 02 or ignore? User asked for multi-archive.
+                    // If we don't have _working0 setup, we can't really support it fully without more changes.
+                    // But for GZ, maybe just 01/02 is enough? User mentioned 01 and 02.
+                    // Let's support 01 and 02 explicitly.
+                    installPath = rawPath.Substring(4);
+                    // 00 -> Ignore or mapped to 02?
+                    targetDir = "_working2"; 
+                }
+                else if (rawPath.StartsWith("/01/") || rawPath.StartsWith("\\01\\"))
+                {
+                    targetDir = "_working1";
+                    installPath = rawPath.Substring(4);
+                    forceOne = true;
+                }
+                else if (rawPath.StartsWith("/02/") || rawPath.StartsWith("\\02\\"))
+                {
+                    targetDir = "_working2";
+                    installPath = rawPath.Substring(4);
+                    forceTwo = true;
+                }
+                else
+                {
+                    // Fallback logic
+                    if (rawPath.EndsWith(".ftex") || rawPath.EndsWith(".ftexs"))
+                    {
+                        targetDir = "_working1";
+                    }
+                    else
+                    {
+                        targetDir = "_working2";
+                    }
+                }
+
+                // Ensure installPath is clean
+                if (!installPath.StartsWith("/")) installPath = "/" + installPath;
+                installPath = Tools.ToWinPath(installPath); // \Assets\tpp...
+
+                // Logic from MergePacks / InstallLooseFtexs
+                string workingDestination = Path.Combine(targetDir, installPath.TrimStart('\\'));
+                 if (!Directory.Exists(Path.GetDirectoryName(workingDestination))) Directory.CreateDirectory(Path.GetDirectoryName(workingDestination));
+                string modQarSource = Path.Combine("_extr", Tools.ToWinPath(rawPath));
+                
+                // Track file in the appropriate list
+                if (targetDir == "_working1")
+                {
+                    if (!oneFiles.Contains(Tools.ToWinPath(installPath))) oneFiles.Add(Tools.ToWinPath(installPath));
+                }
+                else
+                {
+                     if (!installPath.Contains(".ftex")) // Typically ftexs don't go to 02 list if they are in 02? Or wait, 02 is main archive.
+                        twoFiles.Add(Tools.ToWinPath(installPath));
+                }
+
+                // FPK Merge or Copy
+                string existingQarSource = null;
+
+                // Check for FPK merge conditions
+                if (pullFromMods.FirstOrDefault(e => e == modQar.FilePath) != null) // Note: pullFromMods uses ORIGINAL path from metadata?
+                {
+                    // If AddToSettingsFpk saw the prefixed path, it added the prefixed path to pullFromMods.
+                    // We need to match that.
+                    existingQarSource = workingDestination;
+                }
+                else
+                {
+                    int indexToRemove = pullFromVanillas.FindIndex(m => m == modQar.FilePath); 
+                    if (indexToRemove >= 0)
+                    {
+                        existingQarSource = Path.Combine("_gameFpk", Tools.ToWinPath(modQar.FilePath));
+                        pullFromVanillas.RemoveAt(indexToRemove); pullFromMods.Add(modQar.FilePath);
+                    }
+                    else
+                    {
+                        existingQarSource = null;
+                        if (modQar.FilePath.EndsWith(".fpk") || modQar.FilePath.EndsWith(".fpkd"))
+                            pullFromMods.Add(modQar.FilePath); 
+                    }
+                }
+
+                if (existingQarSource != null && File.Exists(existingQarSource))
+                {
+                    var pulledPack = GzsLib.ExtractArchive<FpkFile>(existingQarSource, "_build");
+                    var extrPack = GzsLib.ExtractArchive<FpkFile>(modQarSource, "_build");
+                    pulledPack = pulledPack.Union(extrPack).ToList();
+                    
+                    var fpkReferences = GzsLib.GetFpkReferences(existingQarSource);
+                    GzsLib.WriteFpkArchive(workingDestination, "_build", pulledPack, fpkReferences);
+                }
+                else
+                {
+                    File.Copy(modQarSource, workingDestination, true);
+                }
+            }
         }
 
         private static void ValidateModEntries(ref ModEntry modEntry)
@@ -225,79 +373,6 @@ namespace SnakeBite
                 {
                     Debug.LogLine(String.Format("[ValidateModEntries] Found invalid file entry {0} for archive {1}", fpkEntry.FilePath, fpkEntry.FpkFile), Debug.LogLevel.Basic);
                     modEntry.ModFpkEntries.RemoveAt(i);
-                }
-            }
-        }
-
-        private static HashSet<string> MergePacks(ModEntry extractedModEntry, List<string> pullFromVanillas, List<string> pullFromMods)
-        {
-            HashSet<string> modQarTwoPaths = new HashSet<string>();
-            foreach (ModQarEntry modQar in extractedModEntry.ModQarEntries)
-            {
-                string workingDestination = Path.Combine("_working2", Tools.ToWinPath(modQar.FilePath));
-                if (!Directory.Exists(Path.GetDirectoryName(workingDestination))) Directory.CreateDirectory(Path.GetDirectoryName(workingDestination));
-                string modQarSource = Path.Combine("_extr", Tools.ToWinPath(modQar.FilePath));
-                string existingQarSource;
-
-                if (pullFromMods.FirstOrDefault(e => e == modQar.FilePath) != null)
-                {
-                    existingQarSource = workingDestination;
-                }
-                else
-                {
-                    int indexToRemove = pullFromVanillas.FindIndex(m => m == modQar.FilePath); // remove from retrievalfilepaths and add to editlist
-                    if (indexToRemove >= 0)
-                    {
-                        existingQarSource = Path.Combine("_gameFpk", Tools.ToWinPath(modQar.FilePath));
-                        pullFromVanillas.RemoveAt(indexToRemove); pullFromMods.Add(modQar.FilePath);
-                    }
-                    else
-                    {
-                        existingQarSource = null;
-                        if (modQar.FilePath.EndsWith(".fpk") || modQar.FilePath.EndsWith(".fpkd"))
-                            pullFromMods.Add(modQar.FilePath); // for merging non-native fpk files consecutively
-                    }
-                }
-
-                if (existingQarSource != null)
-                {
-                    var pulledPack = GzsLib.ExtractArchive<FpkFile>(existingQarSource, "_build");
-                    var extrPack = GzsLib.ExtractArchive<FpkFile>(modQarSource, "_build");
-                    pulledPack = pulledPack.Union(extrPack).ToList();
-                    var fpkReferences = GzsLib.GetFpkReferences(existingQarSource);
-                    GzsLib.WriteFpkArchive(workingDestination, "_build", pulledPack, fpkReferences);
-                }
-                else
-                {
-                    File.Copy(modQarSource, workingDestination, true);
-                }
-
-                if (!modQar.FilePath.Contains(".ftex"))
-                {
-                    modQarTwoPaths.Add(Tools.ToWinPath(modQar.FilePath));
-                }
-            }
-
-            return modQarTwoPaths;
-        }
-
-        // i/o: _extr to _working1
-        private static void InstallLooseFtexs(ModEntry modEntry, ref List<string> oneFilesList)
-        {
-            foreach (ModQarEntry modQarEntry in modEntry.ModQarEntries)
-            {
-                if (modQarEntry.FilePath.Contains(".ftex"))
-                {
-                    if (!oneFilesList.Contains(Tools.ToWinPath(modQarEntry.FilePath)))
-                    {
-                        oneFilesList.Add(Tools.ToWinPath(modQarEntry.FilePath));
-                    }
-                    string sourceFile = Path.Combine("_extr", Tools.ToWinPath(modQarEntry.FilePath));
-                    string destFile = Path.Combine("_working1", Tools.ToWinPath(modQarEntry.FilePath));
-                    string destDir = Path.GetDirectoryName(destFile);
-                    Debug.LogLine(String.Format("[Install] Copying texture file: {0}", modQarEntry.FilePath), Debug.LogLevel.All);
-                    if (!Directory.Exists(destDir)) Directory.CreateDirectory(destDir);
-                    File.Copy(sourceFile, destFile, true);
                 }
             }
         }
@@ -349,17 +424,39 @@ namespace SnakeBite
             {
                 Dictionary<string, string> newNameDictionary = new Dictionary<string, string>();
                 int foundUpdate = 0;
-                foreach (ModQarEntry modQar in modToInstall.ModQarEntries.Where(entry => !entry.FilePath.StartsWith("/Assets/")))
+                foreach (ModQarEntry modQar in modToInstall.ModQarEntries)
                 {
+                    string rawPath = modQar.FilePath;
+                    string prefix = "";
+                    string cleanPath = rawPath;
+
+                    // Support GZ prefixes
+                    if (rawPath.StartsWith("/00/") || rawPath.StartsWith("\\00\\"))
+                    {
+                        prefix = "/00/";
+                        cleanPath = rawPath.Substring(4);
+                    }
+                    else if (rawPath.StartsWith("/01/") || rawPath.StartsWith("\\01\\"))
+                    {
+                        prefix = "/01/";
+                        cleanPath = rawPath.Substring(4);
+                    }
+                    else if (rawPath.StartsWith("/02/") || rawPath.StartsWith("\\02\\"))
+                    {
+                        prefix = "/02/";
+                        cleanPath = rawPath.Substring(4);
+                    }
+
                     //Debug.LogLine(string.Format("Attempting to update Qar filename: {0}", modQar.FilePath), Debug.LogLevel.Basic);
-                    string unhashedName = HashingExtended.UpdateName(modQar.FilePath);
+                    string unhashedName = HashingExtended.UpdateName(cleanPath);
                     if (unhashedName != null)
                     {
+                        string newFullPath = prefix + unhashedName;
                         //Debug.LogLine(string.Format("Success: {0}", unhashedName), Debug.LogLevel.Basic);
-                        newNameDictionary.Add(modQar.FilePath, unhashedName);
+                        newNameDictionary.Add(modQar.FilePath, newFullPath);
                         foundUpdate++;
 
-                        modQar.FilePath = unhashedName;
+                        modQar.FilePath = newFullPath;
                         if (!pathUpdatesExist.ContainsKey(modToInstall.Name))
                             pathUpdatesExist.Add(modToInstall.Name, true);
                         else
@@ -385,7 +482,15 @@ namespace SnakeBite
                     string modQarFilePath = modQarEntry.FilePath;
                     if (!(modQarFilePath.EndsWith(".fpk") || modQarFilePath.EndsWith(".fpkd"))) continue; // only pull for Qar's with Fpk's
 
-                    if (modQarFiles.Any(entry => entry == modQarFilePath))
+                    // Clean path for checking against vanilla
+                    string cleanPath = modQarFilePath;
+                    if (cleanPath.StartsWith("/00/") || cleanPath.StartsWith("/01/") || cleanPath.StartsWith("/02/") ||
+                        cleanPath.StartsWith("\\00\\") || cleanPath.StartsWith("\\01\\") || cleanPath.StartsWith("\\02\\"))
+                    {
+                        cleanPath = cleanPath.Substring(4);
+                    }
+
+                    if (modQarFiles.Any(entry => entry == cleanPath || entry == modQarFilePath))
                     {
                         pullFromMods.Add(modQarFilePath);
                         //Debug.LogLine("Pulling from 00.dat: {0} " + modQarFilePath);
