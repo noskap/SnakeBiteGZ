@@ -125,8 +125,8 @@ namespace SnakeBite
 
                 if (!skipCleanup)
                 {
-                    ModManager.CleanupFolders();
-                    ModManager.ClearSBGameDir();
+                    // ModManager.CleanupFolders();
+                    // ModManager.ClearSBGameDir();
                 }
 
                 stopwatch.Stop();
@@ -140,8 +140,8 @@ namespace SnakeBite
                 Debug.LogLine("[Install] Exception: " + e, Debug.LogLevel.Basic);
                 MessageBox.Show("An error has occurred during the installation process and SnakeBite could not install the selected mod(s).\nException: " + e, "Mod(s) could not be installed", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-                ModManager.ClearBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.chunk0Path, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
-                ModManager.CleanupFolders();
+                // ModManager.ClearBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.chunk0Path, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
+                // ModManager.CleanupFolders();
 
                 bool restoreRetry = false;
                 do
@@ -339,11 +339,33 @@ namespace SnakeBite
 
                 if (existingQarSource != null && File.Exists(existingQarSource))
                 {
+                    // Extract vanilla to _build
                     var pulledPack = GzsLib.ExtractArchive<FpkFile>(existingQarSource, "_build");
-                    var extrPack = GzsLib.ExtractArchive<FpkFile>(modQarSource, "_build");
+                    var fpkReferences = GzsLib.GetFpkReferences(existingQarSource);
+
+                    // Extract mod to _build_mod (temp)
+                    string tempModBuildDir = "_build_mod";
+                    if (Directory.Exists(tempModBuildDir)) Directory.Delete(tempModBuildDir, true);
+                    Directory.CreateDirectory(tempModBuildDir);
+
+                    var extrPack = GzsLib.ExtractArchive<FpkFile>(modQarSource, tempModBuildDir);
+
+                    // Merge: Move files from _build_mod to _build, overwriting
+                    foreach (string modFile in extrPack)
+                    {
+                         string srcPath = Path.Combine(tempModBuildDir, Tools.ToWinPath(modFile));
+                         string destPath = Path.Combine("_build", Tools.ToWinPath(modFile));
+                         
+                         if(!Directory.Exists(Path.GetDirectoryName(destPath))) Directory.CreateDirectory(Path.GetDirectoryName(destPath));
+                         File.Copy(srcPath, destPath, true);
+                    }
+                    
+                    // Clean up temp
+                    Directory.Delete(tempModBuildDir, true);
+
+                    // Combine lists (Union handles duplicates)
                     pulledPack = pulledPack.Union(extrPack).ToList();
                     
-                    var fpkReferences = GzsLib.GetFpkReferences(existingQarSource);
                     GzsLib.WriteFpkArchive(workingDestination, "_build", pulledPack, fpkReferences);
                 }
                 else

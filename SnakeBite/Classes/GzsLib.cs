@@ -45,7 +45,7 @@ namespace SnakeBite.GzsTool
 
         static Dictionary<string, string> extensionToType = new Dictionary<string, string> {
             {"dat", "QarFile"},
-            {"g0s", "QarFile"}, // Treat g0s as QarFile for logic purposes
+            {"g0s", "GzsFile"}, // Treat g0s as GzsFile
             {"fpk", "FpkFile" },
             {"fpkd", "FpkFile" },
         };
@@ -121,7 +121,38 @@ namespace SnakeBite.GzsTool
                 // Move extracted folder to OutputPath if needed
                 // GzsTool v0.2 output folder naming convention: [Filename]_[Extension w/o dot]
                 string expectedDirName = Path.GetFileName(FileName).Replace(".", "_");
+                string expectedDirNameAlt = Path.GetFileNameWithoutExtension(FileName);
+                
                 string sourceDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
+
+                // Check paths
+                if (!Directory.Exists(sourceDir))
+                {
+                    // Check alt name in source dir
+                    string sourceDirAlt = Path.Combine(Path.GetDirectoryName(FileName), expectedDirNameAlt);
+                    if (Directory.Exists(sourceDirAlt))
+                    {
+                        sourceDir = sourceDirAlt;
+                    }
+                    else
+                    {
+                        // Check BaseDirectory with original name
+                        string baseDirSource = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, expectedDirName);
+                        if (Directory.Exists(baseDirSource))
+                        {
+                            sourceDir = baseDirSource;
+                        }
+                        else 
+                        {
+                             // Check BaseDirectory with alt name
+                            string baseDirSourceAlt = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, expectedDirNameAlt);
+                            if (Directory.Exists(baseDirSourceAlt))
+                            {
+                                sourceDir = baseDirSourceAlt;
+                            }
+                        }
+                    }
+                }
 
                 if (Directory.Exists(sourceDir))
                 {
@@ -138,7 +169,7 @@ namespace SnakeBite.GzsTool
                 }
                 else
                 {
-                    Debug.LogLine(String.Format("[GzsLib] Expected output directory not found: {0}", sourceDir));
+                    Debug.LogLine(String.Format("[GzsLib] Expected output directory not found: {0} or {1}", expectedDirName, expectedDirNameAlt));
                 }
             }
             
@@ -356,9 +387,12 @@ namespace SnakeBite.GzsTool
              // GzsTool repacks based on an XML file usually.
              // Format: <FpkFile Name="filename"><Entries><Entry FilePath="..." /></Entries><References>...</References></FpkFile>
              
-             string fpkType = FileName.EndsWith(".fpkd") ? "fpkd" : "fpk";
-             // Note: GzsTool v0.2 might need specific XML format.
-             
+             string fpkType = FileName.EndsWith(".fpkd") ? "Fpkd" : "Fpk"; // Type enum string match
+             string xsiType = "FpkFile";
+
+             XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
+             XNamespace xsd = "http://www.w3.org/2001/XMLSchema";
+
              XElement entries = new XElement("Entries");
              foreach(string s in Files)
              {
@@ -375,9 +409,12 @@ namespace SnakeBite.GzsTool
              }
              
              XDocument doc = new XDocument(
-                 new XElement("FpkFile", 
-                    new XAttribute("Name", Path.GetFileName(FileName)), 
-                    // FpkType attribute might be needed?
+                 new XElement("ArchiveFile",
+                    new XAttribute(XNamespace.Xmlns + "xsi", xsi),
+                    new XAttribute(XNamespace.Xmlns + "xsd", xsd),
+                    new XAttribute("Name", Path.GetFileName(FileName)),
+                    new XAttribute(xsi + "type", xsiType),
+                    new XAttribute("FpkType", fpkType),
                     entries,
                     refs
                  )
@@ -429,50 +466,83 @@ namespace SnakeBite.GzsTool
         {
              Debug.LogLine(String.Format("[GzsLib] Writing archive: {0}", FileName));
              
+             XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
+             XNamespace xsd = "http://www.w3.org/2001/XMLSchema";
+             string xsiType = "QarFile";
+
+             if(FileName.Contains(".g0s")) xsiType = "GzsFile"; // Update for GZ compatibility
+
+             // Use safe name for XML and Directory to avoid collisions (e.g. with data_02.g0s file)
+             string safeName = Path.GetFileName(FileName).Replace(".", "_");
+
+             // Prepare Folder Name
+             string expectedDirName = safeName;
+             string destinationDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
+
+             string folderName = safeName;
+             string xmlName = safeName + ".g0s";
+
              // Generate XML
              XElement entries = new XElement("Entries");
              foreach(string s in Files)
              {
                  if (s.EndsWith("_unknown")) { continue; }
-                 bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); // GZ recursive?
+                 bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); 
                  entries.Add(new XElement("Entry", 
-                    new XAttribute("FilePath", s),
-                    new XAttribute("Compressed", compressed),
-                    new XAttribute("Hash", Tools.NameToHash(s)) // Include hash just in case
+                    new XAttribute("FilePath", Tools.ToQarPath(s)),
+                    new XAttribute("Compressed", compressed)
                  ));
              }
              
              XDocument doc = new XDocument(
-                 new XElement("QarFile", 
-                    new XAttribute("Name", Path.GetFileName(FileName)),
+                 new XElement("ArchiveFile", 
+                    new XAttribute(XNamespace.Xmlns + "xsi", xsi),
+                    new XAttribute(XNamespace.Xmlns + "xsd", xsd),
+                    new XAttribute("Name", xmlName), // Output File Name
+                    new XAttribute(xsi + "type", xsiType),
                     new XAttribute("Flags", Flags),
                     entries
                  )
              );
              
-             string xmlPath = FileName + ".xml";
+             string xmlPath = Path.Combine(Path.GetDirectoryName(FileName), safeName + ".xml");
+             
              doc.Save(xmlPath);
 
              // Prepare Folder
-             string expectedDirName = Path.GetFileName(FileName).Replace(".", "_");
-             string destinationDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
-
              bool moved = false;
              if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
              {
                  if (Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
-                 Util.MoveDirectory(SourceDirectory, destinationDir); // Assuming tools has MoveDirectory or we use Directory.Move
+                 Util.MoveDirectory(SourceDirectory, destinationDir); 
                  moved = true;
              }
              
+             string tempOutputPath = Path.Combine(Path.GetDirectoryName(FileName), xmlName);
+             if (File.Exists(tempOutputPath)) File.Delete(tempOutputPath);
+
              // Run Repack
              RunGzsTool(String.Format("\"{0}\"", xmlPath));
 
              if(File.Exists(xmlPath)) File.Delete(xmlPath);
              
+             // Output should be xmlName (safeName.g0s). Rename to FileName.
+             if (File.Exists(tempOutputPath))
+             {
+                 if (File.Exists(FileName)) File.Delete(FileName);
+                 File.Move(tempOutputPath, FileName);
+             }
+             
              if (moved)
              {
-                 Util.MoveDirectory(destinationDir, SourceDirectory);
+                 if (Directory.Exists(destinationDir))
+                 {
+                     Util.MoveDirectory(destinationDir, SourceDirectory);
+                 }
+                 else
+                 {
+                     Debug.LogLine("[GzsLib] Warning: Input directory disappeared after GzsTool run. Cannot restore SourceDirectory.");
+                 }
              }
         }
         
@@ -481,8 +551,22 @@ namespace SnakeBite.GzsTool
         {
              public static void MoveDirectory(string source, string dest)
              {
-                 if (Directory.Exists(dest)) Directory.Delete(dest, true);
-                 Directory.Move(source, dest);
+                 int retries = 5;
+                 while (retries > 0)
+                 {
+                     try
+                     {
+                         if (Directory.Exists(dest)) Directory.Delete(dest, true);
+                         Directory.Move(source, dest);
+                         return;
+                     }
+                     catch (IOException)
+                     {
+                         retries--;
+                         System.Threading.Thread.Sleep(200);
+                         if (retries == 0) throw;
+                     }
+                 }
              }
         }
 

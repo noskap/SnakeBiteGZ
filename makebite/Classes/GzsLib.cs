@@ -1,4 +1,5 @@
 ﻿// SYNC to makebite
+//#define SNAKEBITE // Disabled for MakeBite to avoid SettingsManager dependency
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -109,7 +110,38 @@ namespace SnakeBite.GzsTool
             if(RunGzsTool(String.Format("\"{0}\"", FileName)))
             {
                 string expectedDirName = Path.GetFileName(FileName).Replace(".", "_");
+                string expectedDirNameAlt = Path.GetFileNameWithoutExtension(FileName);
+
                 string sourceDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
+
+                // Check paths
+                if (!Directory.Exists(sourceDir))
+                {
+                    // Check alt name in source dir
+                    string sourceDirAlt = Path.Combine(Path.GetDirectoryName(FileName), expectedDirNameAlt);
+                    if (Directory.Exists(sourceDirAlt))
+                    {
+                        sourceDir = sourceDirAlt;
+                    }
+                    else
+                    {
+                        // Check BaseDirectory with original name
+                        string baseDirSource = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, expectedDirName);
+                        if (Directory.Exists(baseDirSource))
+                        {
+                            sourceDir = baseDirSource;
+                        }
+                        else
+                        {
+                            // Check BaseDirectory with alt name
+                            string baseDirSourceAlt = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, expectedDirNameAlt);
+                            if (Directory.Exists(baseDirSourceAlt))
+                            {
+                                sourceDir = baseDirSourceAlt;
+                            }
+                        }
+                    }
+                }
 
                 if (Directory.Exists(sourceDir))
                 {
@@ -125,7 +157,7 @@ namespace SnakeBite.GzsTool
                 }
                 else
                 {
-                    Debug.LogLine(String.Format("[GzsLib] Expected output directory not found: {0}", sourceDir));
+                    Debug.LogLine(String.Format("[GzsLib] Expected output directory not found: {0} or {1}", expectedDirName, expectedDirNameAlt));
                 }
             }
             
@@ -288,6 +320,7 @@ namespace SnakeBite.GzsTool
                 } else
                 {
                     var qarGameFiles = GetQarGameFiles(path); 
+                    // This will slowly extract and list
                     baseDataFiles.Add(qarGameFiles);
                 }
             }
@@ -300,8 +333,13 @@ namespace SnakeBite.GzsTool
         {
              Debug.LogLine(String.Format("[GzsLib] Writing FPK archive: {0}", FileName));
              
-             string fpkType = FileName.EndsWith(".fpkd") ? "fpkd" : "fpk";
              
+             string fpkType = FileName.EndsWith(".fpkd") ? "Fpkd" : "Fpk"; // Type enum string match
+             string xsiType = "FpkFile";
+
+             XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
+             XNamespace xsd = "http://www.w3.org/2001/XMLSchema";
+
              XElement entries = new XElement("Entries");
              foreach(string s in Files)
              {
@@ -318,32 +356,41 @@ namespace SnakeBite.GzsTool
              }
              
              XDocument doc = new XDocument(
-                 new XElement("FpkFile", 
-                    new XAttribute("Name", Path.GetFileName(FileName)), 
+                 new XElement("ArchiveFile",
+                    new XAttribute(XNamespace.Xmlns + "xsi", xsi),
+                    new XAttribute(XNamespace.Xmlns + "xsd", xsd),
+                    new XAttribute("Name", Path.GetFileName(FileName)),
+                    new XAttribute(xsi + "type", xsiType),
+                    new XAttribute("FpkType", fpkType),
                     entries,
                     refs
                  )
              );
              
-             string xmlPath = FileName + ".xml";
+             // Use safe name for XML and Directory to avoid collisions
+             string safeName = Path.GetFileName(FileName).Replace(".", "_");
+             string xmlPath = Path.Combine(Path.GetDirectoryName(FileName), safeName + ".xml");
+             
              doc.Save(xmlPath);
              
-             string expectedDirName = Path.GetFileName(FileName).Replace(".", "_");
+             string expectedDirName = safeName;
              string destinationDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
              
+             bool moved = false;
              if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
              {
                  if(Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
-                 Directory.Move(SourceDirectory, destinationDir); 
+                 Util.MoveDirectory(SourceDirectory, destinationDir); 
+                 moved = true;
              }
              
              RunGzsTool(String.Format("\"{0}\"", xmlPath));
              
              if(File.Exists(xmlPath)) File.Delete(xmlPath);
              
-              if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
+             if (moved)
              {
-                 Directory.Move(destinationDir, SourceDirectory); 
+                 Util.MoveDirectory(destinationDir, SourceDirectory); 
              }
         }
 
@@ -351,32 +398,50 @@ namespace SnakeBite.GzsTool
         {
              Debug.LogLine(String.Format("[GzsLib] Writing archive: {0}", FileName));
              
+             XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
+             XNamespace xsd = "http://www.w3.org/2001/XMLSchema";
+             string xsiType = "QarFile";
+             if(FileName.Contains(".g0s")) xsiType = "GzsFile"; // Update for GZ compatibility
+
+             // Use safe name for XML and Directory to avoid collisions
+             string safeName = Path.GetFileName(FileName).Replace(".", "_");
+
+             // Prepare Folder Name
+             string expectedDirName = safeName;
+             string destinationDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
+
+             string folderName = safeName;
+             string xmlName = safeName + ".g0s";
+
              XElement entries = new XElement("Entries");
              foreach(string s in Files)
              {
                  if (s.EndsWith("_unknown")) { continue; }
-                 bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); 
+                 string qarPath = s.Replace("\\", "/");
+                 if(!qarPath.StartsWith("/")) qarPath = "/" + qarPath;
+
                  entries.Add(new XElement("Entry", 
-                    new XAttribute("FilePath", s),
-                    new XAttribute("Compressed", compressed),
-                    new XAttribute("Hash", Tools.NameToHash(s)) 
+                    new XAttribute("FilePath", qarPath),
+                    new XAttribute("Compressed", (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd")) ? true : false)
                  ));
              }
              
              XDocument doc = new XDocument(
-                 new XElement("QarFile", 
-                    new XAttribute("Name", Path.GetFileName(FileName)),
+                 new XElement("ArchiveFile", 
+                    new XAttribute(XNamespace.Xmlns + "xsi", xsi),
+                    new XAttribute(XNamespace.Xmlns + "xsd", xsd),
+                    new XAttribute("Name", xmlName), // Output File Name
+                    new XAttribute(xsi + "type", xsiType),
                     new XAttribute("Flags", Flags),
                     entries
                  )
              );
              
-             string xmlPath = FileName + ".xml";
+             string xmlPath = Path.Combine(Path.GetDirectoryName(FileName), safeName + ".xml");
+ 
              doc.Save(xmlPath);
-
-             string expectedDirName = Path.GetFileName(FileName).Replace(".", "_");
-             string destinationDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
-
+ 
+             // Prepare Folder
              bool moved = false;
              if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
              {
@@ -385,22 +450,49 @@ namespace SnakeBite.GzsTool
                  moved = true;
              }
              
-             RunGzsTool(String.Format("\"{0}\"", xmlPath));
+             string tempOutputPath = Path.Combine(Path.GetDirectoryName(FileName), xmlName);
+             if (File.Exists(tempOutputPath)) File.Delete(tempOutputPath);
 
+             if (File.Exists(FileName)) File.Delete(FileName); // Start fresh
+             RunGzsTool(String.Format("\"{0}\"", xmlPath)); 
+             
              if(File.Exists(xmlPath)) File.Delete(xmlPath);
+             
+             // Output should be xmlName (safeName.g0s). Rename to FileName.
+             if (File.Exists(tempOutputPath))
+             {
+                 if (File.Exists(FileName)) File.Delete(FileName);
+                 File.Move(tempOutputPath, FileName);
+             }
              
              if (moved)
              {
-                 Util.MoveDirectory(destinationDir, SourceDirectory);
+                 if (Directory.Exists(destinationDir))
+                 {
+                     Util.MoveDirectory(destinationDir, SourceDirectory);
+                 }
              }
-        }
-        
+        }        
         private static class Util 
         {
              public static void MoveDirectory(string source, string dest)
              {
-                 if (Directory.Exists(dest)) Directory.Delete(dest, true);
-                 Directory.Move(source, dest);
+                 int retries = 5;
+                 while (retries > 0)
+                 {
+                     try
+                     {
+                         if (Directory.Exists(dest)) Directory.Delete(dest, true);
+                         Directory.Move(source, dest);
+                         return;
+                     }
+                     catch (IOException)
+                     {
+                         retries--;
+                         System.Threading.Thread.Sleep(200);
+                         if (retries == 0) throw;
+                     }
+                 }
              }
         }
 
