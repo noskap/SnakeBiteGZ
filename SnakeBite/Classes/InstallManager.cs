@@ -44,11 +44,13 @@ namespace SnakeBite
                 foreach (var entry in mod.ModQarEntries)
                 {
                     string path = entry.FilePath;
-                    if (path.StartsWith("/02/") || path.StartsWith("\\02\\") || path.StartsWith("/data_02/") || path.StartsWith("\\data_02\\"))
+                    if (path.StartsWith("/02/") || path.StartsWith("\\02\\") || path.StartsWith("/data_02/") || path.StartsWith("\\data_02\\") ||
+                        path == "/02.xml" || path == "\\02.xml" || path == "/data_02.g0s.xml" || path == "\\data_02.g0s.xml" || path == "/data_02.xml" || path == "\\data_02.xml")
                     {
                         hasData02 = true;
                     }
-                    else if (path.StartsWith("/01/") || path.StartsWith("\\01\\") || path.StartsWith("/data_01/") || path.StartsWith("\\data_01\\"))
+                    else if (path.StartsWith("/01/") || path.StartsWith("\\01\\") || path.StartsWith("/data_01/") || path.StartsWith("\\data_01\\") ||
+                             path == "/01.xml" || path == "\\01.xml" || path == "/data_01.g0s.xml" || path == "\\data_01.g0s.xml" || path == "/01.g0s.xml" || path == "\\01.g0s.xml")
                     {
                         hasData01 = true;
                     }

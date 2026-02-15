@@ -6,7 +6,8 @@ Current fork at: https://github.com/TinManTex/SnakeBite
 // TODO mention new features, xml merging with custom entry support (for custom texture mods), loose g0s support
 // Explain how makebite works, it doesnt repack fpks, just throws file replacements in 
 // Explain differences with base snakebite (g0s support, no .dat support, no chunk7 support)
-
+// TODO add unit tests, surely we can automate some basic model swaps and use md5 checksums to ensure the g0s archive are what we expect
+// TODO start game doesnt seem to work properly
 ## Getting started with SnakeBite
 Before running makebite make sure the 00.dat and 01.dat in MGSV_TPP\master\0 are unmodified.
 Use the validate game cache option via steam if nessesary.
