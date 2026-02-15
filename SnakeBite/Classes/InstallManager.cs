@@ -22,40 +22,28 @@ namespace SnakeBite
             Debug.LogLine("[Install] Start", Debug.LogLevel.Basic);
             ModManager.ClearBuildFiles(GamePaths.OnePath, GamePaths.chunk0Path, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath); // deletes any leftover sb_build files that might still be in the directory (ie from a mid-process shutdown) 
             ModManager.ClearSBGameDir(); // deletes the game directory sb_build
-            ModManager.CleanupFolders(); // deletes the work folders which contain extracted files from 00/01
+            ModManager.CleanupFolders(); // deletes the work folders which contain extracted files from 01/02
 
-            if (Properties.Settings.Default.AutosaveRevertPreset == true)
-            {
-                PresetManager.SavePreset(GamePaths.SavePresetPath + GamePaths.build_ext); // creates a backup preset file sb_build
-            }
-            else
-            {
-                Debug.LogLine("[Install] Skipping RevertChanges.GZPreset Save", Debug.LogLevel.Basic);
-            }
             File.Copy(GamePaths.SnakeBiteSettings, GamePaths.SnakeBiteSettings + GamePaths.build_ext, true); // creates a settings sb_build
 
             GzsLib.LoadDictionaries();
             List<ModEntry> installEntryList = new List<ModEntry>();
             foreach(string modFile in ModFiles) installEntryList.Add(Tools.ReadMetaData(modFile));
 
-
-            // GZ: Swapping strict 00/01 logic for generic list based logic or specific data_02 support
-            // data_00 is ignored (WMV). data_01 (01.dat) and data_02 (chunk0) are supported.
-
+            // data_00 is ignored (WMV). data_01.g0s and data_02.g0s are supported.
             List<string> oneFiles = new List<string>(); // data_01
             List<string> twoFiles = new List<string>(); // data_02
 
             bool hasData01 = false;
             bool hasData02 = false;
 
-            // Updated logic to support 00/01/02 prefixes
+            // Updated logic to support 01/02 prefixes
             foreach (var mod in installEntryList)
             {
                 foreach (var entry in mod.ModQarEntries)
                 {
                     string path = entry.FilePath;
-                    if (path.StartsWith("/00/") || path.StartsWith("\\00\\") || 
-                        path.StartsWith("/02/") || path.StartsWith("\\02\\"))
+                    if (path.StartsWith("/02/") || path.StartsWith("\\02\\"))
                     {
                         hasData02 = true;
                     }
@@ -73,6 +61,12 @@ namespace SnakeBite
                     if (hasData01 && hasData02) break;
                 }
                 if (hasData01 && hasData02) break;
+            }
+
+            if (Properties.Settings.Default.AutosaveRevertPreset == true)
+            {
+                 // GZ: Only backup data_01 if we are modifying it.
+                 PresetManager.SavePreset(GamePaths.SavePresetPath + GamePaths.build_ext, hasData01, hasData02);
             }
 
             if (hasData02)
@@ -94,7 +88,14 @@ namespace SnakeBite
             var twoFilesHashSet = new HashSet<string>(twoFiles);
 
             Debug.LogLine("[Install] Building gameFiles lists", Debug.LogLevel.Basic);
-            var baseGameFiles = GzsLib.ReadBaseData();
+            
+            // GZ: Optimize reading base data
+            // Only read the archives we are actually modifying.
+            // data_00 is a wmv file and cannot be read with qar
+            // We'll read 00 if we ever support it, but for now 01 and 02.
+            bool read00 = false; // TPP trailer played in GZ mission ending
+            var baseGameFiles = GzsLib.ReadBaseData(read00, hasData01, hasData02);
+            
             var allQarGameFiles = new List<Dictionary<ulong, GameFile>>();
             allQarGameFiles.AddRange(baseGameFiles);
 

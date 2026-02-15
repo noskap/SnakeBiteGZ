@@ -32,22 +32,6 @@ namespace makebite
 
         private void PopulateBoxes(string modPath)
         {
-            // unpack existing fpks if extracted folders don't exist
-            foreach (string fpkFile in Directory.GetFiles(modPath, "*.fpk*", SearchOption.AllDirectories))
-            {
-                //tex chunk0\Assets\tpp\pack\collectible\common\col_common_tpp_fpk\Assets\tpp\pack\resident\resident00.fpkl is the only fpkl, don't know what a fpkl is, but gzcore crashes on it. also checks for xml in case user opened the fpk with gzstool and produced a xml file
-                if (fpkFile.EndsWith(".fpkl") || fpkFile.EndsWith(".xml")) {
-                    continue;
-                }
-
-                string fpkDir = Path.Combine(Path.GetDirectoryName(fpkFile), Path.GetFileName(fpkFile).Replace(".", "_"));
-                if (!Directory.Exists(fpkDir))
-                {
-                    //extract fpk
-                    GzsLib.ExtractArchive<FpkFile>(fpkFile, fpkDir);
-                }
-            }
-
             foreach (string modFile in Directory.GetFiles(modPath, "*.*", SearchOption.AllDirectories))
             {
                 string filePath = modFile.Substring(modPath.Length).Replace("\\", "/");

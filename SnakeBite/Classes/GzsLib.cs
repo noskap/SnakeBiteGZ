@@ -384,7 +384,7 @@ namespace SnakeBite.GzsTool
             }
         }
 
-        public static List<Dictionary<ulong, GameFile>> ReadBaseData()
+        public static List<Dictionary<ulong, GameFile>> ReadBaseData(bool read00 = false, bool read01 = false, bool read02 = false)
         {
             Debug.LogLine("[GzsLib] Acquiring base game data");
 
@@ -392,11 +392,10 @@ namespace SnakeBite.GzsTool
             var baseDataFiles = new List<Dictionary<ulong, GameFile>>();
             string dataDir = GamePaths.GameDir; // GZ data is in root, not master
 
-            var qarFileNames = new List<string> {
-                "data_00.g0s", // System
-                "data_01.g0s", // Resources
-                "data_02.g0s", // Audio?
-            };
+            var qarFileNames = new List<string>();
+            // if(read00) qarFileNames.Add("data_00.g0s");
+            if(read01) qarFileNames.Add("data_01.g0s");
+            if(read02) qarFileNames.Add("data_02.g0s");
 
             foreach (var qarFileName in qarFileNames)
             {

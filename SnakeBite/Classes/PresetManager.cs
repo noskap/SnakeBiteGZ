@@ -14,10 +14,10 @@ namespace SnakeBite
         /// <summary>
         /// Creates a .MGSVPreset file for the mods that are currently installed
         /// </summary>
-        public static bool SavePreset(string presetFilePath)
+        public static bool SavePreset(string presetFilePath, bool backupOne = true, bool backupChunk0 = false)
         {
             bool success = false;
-            Directory.CreateDirectory("_build\\master\\0");
+            Directory.CreateDirectory("_build");
             SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
             string presetName = Path.GetFileName(presetFilePath);
             Debug.LogLine(String.Format("[SavePreset] Saving {0}...", presetName), Debug.LogLevel.Basic);
@@ -35,9 +35,11 @@ namespace SnakeBite
                     else Debug.LogLine(string.Format("[SavePreset] File not found: {0}", sourcePath), Debug.LogLevel.Basic);
                 }
 
-
-                Debug.LogLine("[SavePreset] Copying to build directory: 01.dat", Debug.LogLevel.Basic);
-                File.Copy(GamePaths.OnePath, "_build\\master\\0\\01.dat", true);
+                if (backupOne)
+                {
+                    Debug.LogLine("[SavePreset] Copying to build directory: data_01.g0s", Debug.LogLevel.Basic);
+                    File.Copy(GamePaths.OnePath, "_build\\data_01.g0s", true); 
+                }
 
                 Debug.LogLine("[SavePreset] Copying to build directory: snakebite.xml", Debug.LogLevel.Basic);
                 File.Copy(GamePaths.SnakeBiteSettings, "_build\\snakebite.xml", true);
@@ -102,7 +104,7 @@ namespace SnakeBite
                     }
 
 
-                    Debug.LogLine("[LoadPreset] Storing backup: 01.dat", Debug.LogLevel.Basic);
+                    Debug.LogLine("[LoadPreset] Storing backup: data_01.g0s", Debug.LogLevel.Basic);
                     File.Copy(GamePaths.OnePath, GamePaths.OnePath + GamePaths.build_ext, true);
 
                     Debug.LogLine("[LoadPreset] Storing backup: snakebite.xml", Debug.LogLevel.Basic);
