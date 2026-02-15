@@ -239,8 +239,8 @@ namespace SnakeBite.GzsTool
                 var files = ExtractArchive<object>(qarPath, tempDir);
                 foreach(var file in files)
                 {
-                    ulong hash = HashingExtended.HashFileName(file);
-                    result[hash] = new GameFile { FilePath = file, FileHash = hash, QarFile = Path.GetFileName(qarPath) };
+                    ulong hash = HashingExtended.HashFileName(Tools.ToQarPath(file));
+                    result[hash] = new GameFile { FilePath = Tools.ToQarPath(file), FileHash = hash, QarFile = Path.GetFileName(qarPath) };
                 }
             }
             finally
@@ -331,6 +331,9 @@ namespace SnakeBite.GzsTool
             var QarNames = manager.GetModQarFiles(true);
             File.WriteAllLines("mod_qar_dict.txt", QarNames);
             HashingExtended.ReadDictionary("mod_qar_dict.txt"); // Was Hashing.ReadDictionary
+            
+            // GZ: Merge into qar_dictionary.txt so GzsTool can resolve mod paths during extraction
+            MergeDictionaries("qar_dictionary.txt", "mod_qar_dict.txt");
         }
 
         public static void LoadModDictionary(ModEntry modEntry)
@@ -344,6 +347,41 @@ namespace SnakeBite.GzsTool
             }
             File.WriteAllLines("mod_qar_dict.txt", qarNames);
             HashingExtended.ReadDictionary("mod_qar_dict.txt");
+
+            // GZ: Merge into qar_dictionary.txt so GzsTool can resolve mod paths during extraction
+            MergeDictionaries("qar_dictionary.txt", "mod_qar_dict.txt");
+        }
+
+        private static void MergeDictionaries(string mainDict, string modDict)
+        {
+            try
+            {
+                if (!File.Exists(mainDict)) File.Create(mainDict).Close();
+                if (!File.Exists(modDict)) return;
+
+                var mainLines = new HashSet<string>(File.ReadAllLines(mainDict));
+                var modLines = File.ReadAllLines(modDict);
+                bool changed = false;
+
+                foreach (var line in modLines)
+                {
+                    if (!mainLines.Contains(line))
+                    {
+                        mainLines.Add(line);
+                        changed = true;
+                    }
+                }
+
+                if (changed)
+                {
+                    File.WriteAllLines(mainDict, mainLines);
+                    Debug.LogLine(string.Format("[GzsLib] Updated {0} with mod paths.", mainDict));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogLine(string.Format("[GzsLib] Error merging dictionaries: {0}", ex.Message));
+            }
         }
 
         public static List<Dictionary<ulong, GameFile>> ReadBaseData()
@@ -390,13 +428,15 @@ namespace SnakeBite.GzsTool
              string fpkType = FileName.EndsWith(".fpkd") ? "Fpkd" : "Fpk"; // Type enum string match
              string xsiType = "FpkFile";
 
+             Files = SortFpksFiles(fpkType.ToLower(), Files);
+
              XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
              XNamespace xsd = "http://www.w3.org/2001/XMLSchema";
 
              XElement entries = new XElement("Entries");
              foreach(string s in Files)
              {
-                 entries.Add(new XElement("Entry", new XAttribute("FilePath", Tools.ToQarPath(s))));
+                 entries.Add(new XElement("Entry", new XAttribute("FilePath", Tools.ToQarPath(s).TrimStart('/'))));
              }
              
              XElement refs = new XElement("References");
@@ -434,30 +474,41 @@ namespace SnakeBite.GzsTool
              string expectedDirName = Path.GetFileName(FileName).Replace(".", "_");
              string destinationDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
              
-             // If source is different from destination dir expectation
-             if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
+             // Prepare Folder
+             bool moved = false;
+             try
              {
-                 if(Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
-                 // Directory.Move can be finicky across volumes, but here should be same.
-                 // Copying might be safer or symlink? Let's Move.
-                 Directory.Move(SourceDirectory, destinationDir); 
+                 if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
+                 {
+                     if (Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
+                     // Directory.Move can be finicky across volumes, but here should be same.
+                     // Copying might be safer or symlink? Let's Move.
+                     Util.MoveDirectory(SourceDirectory, destinationDir); 
+                     moved = true;
+                 }
+                 
+                 // Run Repack
+                 RunGzsTool(String.Format("\"{0}\"", xmlPath));
              }
-             
-             // Run Repack
-             RunGzsTool(String.Format("\"{0}\"", xmlPath));
-             
-             // Cleanup XML
-             if(File.Exists(xmlPath)) File.Delete(xmlPath);
-             
-             // Move directory back? Or just leave it? InstallManager likely clears it.
-             // But InstallManager expects the SourceDirectory to still exist? 
-             // "ModManager.ClearBuildFiles" does cleanup.
-             // We moved SourceDirectory, so future operations on SourceDirectory might fail if we don't move it back or update reference.
-             // But this function is void, so caller doesn't know.
-             // We should move it back.
-              if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
+             finally
              {
-                 Directory.Move(destinationDir, SourceDirectory); 
+                 // Cleanup XML
+                 if(File.Exists(xmlPath)) File.Delete(xmlPath);
+                 
+                 // Move directory back
+                 if (moved)
+                 {
+                     if (Directory.Exists(destinationDir))
+                     {
+                         Util.MoveDirectory(destinationDir, SourceDirectory);
+                     }
+                     else
+                     {
+                         // If destination dir is gone, but we moved it there, we have strict data loss involved or GzsTool consumed it.
+                         // But we should try to restore if possible.
+                         Debug.LogLine("[GzsLib] Warning: Input directory disappeared after GzsTool run. Cannot restore SourceDirectory.");
+                     }
+                 }
              }
         }
 
@@ -488,6 +539,8 @@ namespace SnakeBite.GzsTool
              {
                  if (s.EndsWith("_unknown")) { continue; }
                  bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); 
+                 // Fix: Do NOT include folderName in FilePath as GzsTool searches relative to it.
+                 // Fix: Ensure forward slashes for QAR hashing lookup (avoid flattening).
                  entries.Add(new XElement("Entry", 
                     new XAttribute("FilePath", Tools.ToQarPath(s)),
                     new XAttribute("Compressed", compressed)
@@ -511,39 +564,46 @@ namespace SnakeBite.GzsTool
 
              // Prepare Folder
              bool moved = false;
-             if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
+             try
              {
-                 if (Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
-                 Util.MoveDirectory(SourceDirectory, destinationDir); 
-                 moved = true;
-             }
-             
-             string tempOutputPath = Path.Combine(Path.GetDirectoryName(FileName), xmlName);
-             if (File.Exists(tempOutputPath)) File.Delete(tempOutputPath);
-
-             // Run Repack
-             RunGzsTool(String.Format("\"{0}\"", xmlPath));
-
-             if(File.Exists(xmlPath)) File.Delete(xmlPath);
-             
-             // Output should be xmlName (safeName.g0s). Rename to FileName.
-             if (File.Exists(tempOutputPath))
-             {
-                 if (File.Exists(FileName)) File.Delete(FileName);
-                 File.Move(tempOutputPath, FileName);
-             }
-             
-             if (moved)
-             {
-                 if (Directory.Exists(destinationDir))
+                 if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
                  {
-                     Util.MoveDirectory(destinationDir, SourceDirectory);
+                     if (Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
+                     Util.MoveDirectory(SourceDirectory, destinationDir); 
+                     moved = true;
                  }
-                 else
+                 
+                 string tempOutputPath = Path.Combine(Path.GetDirectoryName(FileName), xmlName);
+                 if (File.Exists(tempOutputPath)) File.Delete(tempOutputPath);
+
+                 // Run Repack
+                 RunGzsTool(String.Format("\"{0}\"", xmlPath));
+
+                 if(File.Exists(xmlPath)) File.Delete(xmlPath);
+                 
+                 // Output should be xmlName (safeName.g0s). Rename to FileName.
+                 if (File.Exists(tempOutputPath))
                  {
-                     Debug.LogLine("[GzsLib] Warning: Input directory disappeared after GzsTool run. Cannot restore SourceDirectory.");
+                     if (File.Exists(FileName)) File.Delete(FileName);
+                     File.Move(tempOutputPath, FileName);
                  }
              }
+             finally
+             {
+                 if (moved)
+                 {
+                     if (Directory.Exists(destinationDir))
+                     {
+                         Util.MoveDirectory(destinationDir, SourceDirectory);
+                     }
+                     else
+                     {
+                         Debug.LogLine("[GzsLib] Warning: Input directory disappeared after GzsTool run. Cannot restore SourceDirectory.");
+                     }
+                 }
+             }
+
+
         }
         
         // Helper since Directory.Move has limitations (e.g. existing dest)
@@ -593,6 +653,8 @@ namespace SnakeBite.GzsTool
             else fpkFiles.Sort((a, b) => string.CompareOrdinal(b, a));
             
             var fpkFilesSorted = new List<string>();
+            var sortedSet = new HashSet<string>();
+
             if (archiveExtensions.ContainsKey(FpkType))
             {
                 foreach (var archiveExtension in archiveExtensions[FpkType]) {
@@ -600,11 +662,21 @@ namespace SnakeBite.GzsTool
                         var fileExtension = Path.GetExtension(fileName).TrimStart('.');
                         if (archiveExtension == fileExtension) {
                             fpkFilesSorted.Add(fileName);
+                            sortedSet.Add(fileName);
                         }
                     }
                 }
             }
-            // Add remaining? Original didn't, seemingly
+            
+            // GZ: Add remaining files that weren't in the sort list
+            foreach (var fileName in fpkFiles)
+            {
+                if (!sortedSet.Contains(fileName))
+                {
+                    fpkFilesSorted.Add(fileName);
+                }
+            }
+
             return fpkFilesSorted;
         }
 

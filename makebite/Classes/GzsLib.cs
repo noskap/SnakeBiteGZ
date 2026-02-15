@@ -206,8 +206,8 @@ namespace SnakeBite.GzsTool
                 var files = ExtractArchive<object>(qarPath, tempDir);
                 foreach(var file in files)
                 {
-                    ulong hash = HashingExtended.HashFileName(file);
-                    result[hash] = new GameFile { FilePath = file, FileHash = hash, QarFile = Path.GetFileName(qarPath) };
+                    ulong hash = HashingExtended.HashFileName(Tools.ToQarPath(file));
+                    result[hash] = new GameFile { FilePath = Tools.ToQarPath(file), FileHash = hash, QarFile = Path.GetFileName(qarPath) };
                 }
             }
             finally
@@ -336,6 +336,7 @@ namespace SnakeBite.GzsTool
              
              string fpkType = FileName.EndsWith(".fpkd") ? "Fpkd" : "Fpk"; // Type enum string match
              string xsiType = "FpkFile";
+             Files = SortFpksFiles(fpkType.ToLower(), Files);
 
              XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
              XNamespace xsd = "http://www.w3.org/2001/XMLSchema";
@@ -343,7 +344,7 @@ namespace SnakeBite.GzsTool
              XElement entries = new XElement("Entries");
              foreach(string s in Files)
              {
-                 entries.Add(new XElement("Entry", new XAttribute("FilePath", Tools.ToQarPath(s))));
+                 entries.Add(new XElement("Entry", new XAttribute("FilePath", Tools.ToQarPath(s).TrimStart('/'))));
              }
              
              XElement refs = new XElement("References");
@@ -377,20 +378,28 @@ namespace SnakeBite.GzsTool
              string destinationDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
              
              bool moved = false;
-             if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
+             try
              {
-                 if(Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
-                 Util.MoveDirectory(SourceDirectory, destinationDir); 
-                 moved = true;
+                 if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
+                 {
+                     if(Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
+                     Util.MoveDirectory(SourceDirectory, destinationDir); 
+                     moved = true;
+                 }
+                 
+                 RunGzsTool(String.Format("\"{0}\"", xmlPath));
              }
-             
-             RunGzsTool(String.Format("\"{0}\"", xmlPath));
-             
-             if(File.Exists(xmlPath)) File.Delete(xmlPath);
-             
-             if (moved)
+             finally
              {
-                 Util.MoveDirectory(destinationDir, SourceDirectory); 
+                 if(File.Exists(xmlPath)) File.Delete(xmlPath);
+                 
+                 if (moved)
+                 {
+                     if (Directory.Exists(destinationDir))
+                     {
+                         Util.MoveDirectory(destinationDir, SourceDirectory); 
+                     }
+                 }
              }
         }
 
@@ -417,6 +426,8 @@ namespace SnakeBite.GzsTool
              foreach(string s in Files)
              {
                  if (s.EndsWith("_unknown")) { continue; }
+                 // Fix: Do NOT include folderName in FilePath.
+                 // Fix: Normalize to forward slashes max dictionary format (e.g. /Assets/...)
                  string qarPath = s.Replace("\\", "/");
                  if(!qarPath.StartsWith("/")) qarPath = "/" + qarPath;
 
@@ -441,35 +452,40 @@ namespace SnakeBite.GzsTool
  
              doc.Save(xmlPath);
  
-             // Prepare Folder
              bool moved = false;
-             if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
+             try
              {
-                 if (Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
-                 Util.MoveDirectory(SourceDirectory, destinationDir); 
-                 moved = true;
-             }
-             
-             string tempOutputPath = Path.Combine(Path.GetDirectoryName(FileName), xmlName);
-             if (File.Exists(tempOutputPath)) File.Delete(tempOutputPath);
-
-             if (File.Exists(FileName)) File.Delete(FileName); // Start fresh
-             RunGzsTool(String.Format("\"{0}\"", xmlPath)); 
-             
-             if(File.Exists(xmlPath)) File.Delete(xmlPath);
-             
-             // Output should be xmlName (safeName.g0s). Rename to FileName.
-             if (File.Exists(tempOutputPath))
-             {
-                 if (File.Exists(FileName)) File.Delete(FileName);
-                 File.Move(tempOutputPath, FileName);
-             }
-             
-             if (moved)
-             {
-                 if (Directory.Exists(destinationDir))
+                 if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
                  {
-                     Util.MoveDirectory(destinationDir, SourceDirectory);
+                     if (Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
+                     Util.MoveDirectory(SourceDirectory, destinationDir); 
+                     moved = true;
+                 }
+                 
+                 string tempOutputPath = Path.Combine(Path.GetDirectoryName(FileName), xmlName);
+                 if (File.Exists(tempOutputPath)) File.Delete(tempOutputPath);
+
+                 // Run Repack
+                 if (File.Exists(FileName)) File.Delete(FileName); // Start fresh
+                 RunGzsTool(String.Format("\"{0}\"", xmlPath)); 
+                 
+                 if(File.Exists(xmlPath)) File.Delete(xmlPath);
+                 
+                 // Output should be xmlName (safeName.g0s). Rename to FileName.
+                 if (File.Exists(tempOutputPath))
+                 {
+                     if (File.Exists(FileName)) File.Delete(FileName);
+                     File.Move(tempOutputPath, FileName);
+                 }
+             }
+             finally
+             {
+                 if (moved)
+                 {
+                     if (Directory.Exists(destinationDir))
+                     {
+                         Util.MoveDirectory(destinationDir, SourceDirectory);
+                     }
                  }
              }
         }        
@@ -518,6 +534,8 @@ namespace SnakeBite.GzsTool
             else fpkFiles.Sort((a, b) => string.CompareOrdinal(b, a));
             
             var fpkFilesSorted = new List<string>();
+            var sortedSet = new HashSet<string>();
+
             if (archiveExtensions.ContainsKey(FpkType))
             {
                 foreach (var archiveExtension in archiveExtensions[FpkType]) {
@@ -525,10 +543,21 @@ namespace SnakeBite.GzsTool
                         var fileExtension = Path.GetExtension(fileName).TrimStart('.');
                         if (archiveExtension == fileExtension) {
                             fpkFilesSorted.Add(fileName);
+                            sortedSet.Add(fileName);
                         }
                     }
                 }
             }
+
+            // GZ: Add remaining files that weren't in the sort list
+            foreach (var fileName in fpkFiles)
+            {
+                if (!sortedSet.Contains(fileName))
+                {
+                    fpkFilesSorted.Add(fileName);
+                }
+            }
+
             return fpkFilesSorted;
         }
 
@@ -545,7 +574,18 @@ namespace SnakeBite.GzsTool
 
             var validExtensions = archiveExtensions[archiveExtension];
             var ext = Path.GetExtension(fileName).TrimStart('.');
-            return validExtensions.Contains(ext);
+            if (validExtensions.Contains(ext)) return true;
+
+            // Relaxed validation: Allow unknown extensions, but block specific metadata types
+            if (ext.Equals("xml", StringComparison.OrdinalIgnoreCase) || 
+                ext.Equals("txt", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals("bat", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals("log", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true; // Allow content file
         }
     }
     

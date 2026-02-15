@@ -291,31 +291,35 @@ namespace SnakeBite
                     }
                 }
 
-                // Ensure installPath is clean
-                if (!installPath.StartsWith("/")) installPath = "/" + installPath;
-                installPath = Tools.ToWinPath(installPath); // \Assets\tpp...
+                // Ensure installPath is clean and QAR-compliant (starts with /)
+                installPath = Tools.ToQarPath(installPath);
+                
+                // Update installPath to Windows format for file operations
+                string winInstallPath = Tools.ToWinPath(installPath); // \Assets\tpp...
 
                 // Logic from MergePacks / InstallLooseFtexs
-                string workingDestination = Path.Combine(targetDir, installPath.TrimStart('\\'));
+                // Use winInstallPath for file operations
+                string workingDestination = Path.Combine(targetDir, winInstallPath.TrimStart('\\'));
+
                  if (!Directory.Exists(Path.GetDirectoryName(workingDestination))) Directory.CreateDirectory(Path.GetDirectoryName(workingDestination));
                 string modQarSource = Path.Combine("_extr", Tools.ToWinPath(rawPath));
                 
                 // Track file in the appropriate list
                 if (targetDir == "_working1")
                 {
-                    if (!oneFiles.Contains(Tools.ToWinPath(installPath))) oneFiles.Add(Tools.ToWinPath(installPath));
+                    if (!oneFiles.Contains(winInstallPath)) oneFiles.Add(winInstallPath);
                 }
                 else
                 {
                      if (!installPath.Contains(".ftex")) // Typically ftexs don't go to 02 list if they are in 02? Or wait, 02 is main archive.
-                        twoFiles.Add(Tools.ToWinPath(installPath));
+                        twoFiles.Add(winInstallPath);
                 }
 
                 // FPK Merge or Copy
                 string existingQarSource = null;
 
                 // Check for FPK merge conditions
-                if (pullFromMods.FirstOrDefault(e => e == modQar.FilePath) != null) // Note: pullFromMods uses ORIGINAL path from metadata?
+                if (pullFromMods.FirstOrDefault(e => e == installPath) != null) // Note: pullFromMods uses CORRECTED path
                 {
                     // If AddToSettingsFpk saw the prefixed path, it added the prefixed path to pullFromMods.
                     // We need to match that.
@@ -323,17 +327,17 @@ namespace SnakeBite
                 }
                 else
                 {
-                    int indexToRemove = pullFromVanillas.FindIndex(m => m == modQar.FilePath); 
+                    int indexToRemove = pullFromVanillas.FindIndex(m => m == installPath); 
                     if (indexToRemove >= 0)
                     {
-                        existingQarSource = Path.Combine("_gameFpk", Tools.ToWinPath(modQar.FilePath));
-                        pullFromVanillas.RemoveAt(indexToRemove); pullFromMods.Add(modQar.FilePath);
+                        existingQarSource = Path.Combine("_gameFpk", winInstallPath.TrimStart('\\'));
+                        pullFromVanillas.RemoveAt(indexToRemove); pullFromMods.Add(installPath);
                     }
                     else
                     {
                         existingQarSource = null;
-                        if (modQar.FilePath.EndsWith(".fpk") || modQar.FilePath.EndsWith(".fpkd"))
-                            pullFromMods.Add(modQar.FilePath); 
+                        if (installPath.EndsWith(".fpk") || installPath.EndsWith(".fpkd"))
+                            pullFromMods.Add(installPath); 
                     }
                 }
 
@@ -349,6 +353,20 @@ namespace SnakeBite
                     Directory.CreateDirectory(tempModBuildDir);
 
                     var extrPack = GzsLib.ExtractArchive<FpkFile>(modQarSource, tempModBuildDir);
+                    
+                    // GZ: Merge references from mod FPK
+                    var modReferences = GzsLib.GetFpkReferences(modQarSource);
+                    if (modReferences != null && modReferences.Count > 0)
+                    {
+                        if (fpkReferences == null) fpkReferences = new List<string>();
+                        foreach (string refPath in modReferences)
+                        {
+                            if (!fpkReferences.Contains(refPath)) 
+                            {
+                                fpkReferences.Add(refPath);
+                            }
+                        }
+                    }
 
                     // Merge: Move files from _build_mod to _build, overwriting
                     foreach (string modFile in extrPack)
@@ -367,6 +385,8 @@ namespace SnakeBite
                     pulledPack = pulledPack.Union(extrPack).ToList();
                     
                     GzsLib.WriteFpkArchive(workingDestination, "_build", pulledPack, fpkReferences);
+                    
+                    if(Directory.Exists("_build")) Directory.Delete("_build", true);
                 }
                 else
                 {

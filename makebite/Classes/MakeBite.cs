@@ -238,7 +238,29 @@ namespace makebite
             foreach (string FpkFullDir in fpkFolders)
             {
                 string destFpkName = FpkFullDir.Replace("_fpk", ".fpk");
-                foreach (ModFpkEntry fpkEntry in BuildFpk(FpkFullDir, destFpkName, SourceDir, fpkReferences))
+                
+                // Attempt to find references from GzsTool XML if it exists
+                List<string> references = new List<string>();
+                string potentialXml = destFpkName + ".xml";
+                if (File.Exists(potentialXml))
+                {
+                    try
+                    {
+                        System.Xml.Linq.XDocument doc = System.Xml.Linq.XDocument.Load(potentialXml);
+                        foreach(var r in doc.Descendants("Reference"))
+                        {
+                            var attr = r.Attribute("FilePath");
+                            if (attr != null) references.Add(attr.Value);
+                        }
+                        Debug.LogLine(String.Format("[BuildArchive] Found {0} references for {1}", references.Count, Path.GetFileName(destFpkName)));
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogLine(String.Format("[BuildArchive] Error parsing references from {0}: {1}", potentialXml, ex.Message));
+                    }
+                }
+
+                foreach (ModFpkEntry fpkEntry in BuildFpk(FpkFullDir, destFpkName, SourceDir, references))
                 {
                     metaData.ModFpkEntries.Add(fpkEntry);
                     if (!builtFpks.Contains(fpkEntry.FpkFile)) builtFpks.Add(fpkEntry.FpkFile);
@@ -256,28 +278,51 @@ namespace makebite
                 string FileName = Tools.ToQarPath(SourceFile.Substring(SourceDir.Length));
                 if (!builtFpks.Contains(FileName))
                 {
-                    // unpack FPK and build FPK list
                     string fpkDir = Tools.ToWinPath(FileName.Replace(".fpk", "_fpk"));
                     string fpkFullDir = Path.Combine(SourceDir, fpkDir);
-                    if (!Directory.Exists(fpkFullDir))
+                    
+                    bool createdTemp = false;
+                    List<string> fpkContents = new List<string>();
+                    try 
                     {
-                        GzsLib.ExtractArchive<FpkFile>(SourceFile, fpkFullDir);
-                    }
-
-                    var fpkContents = GzsLib.ListArchiveContents<FpkFile>(SourceFile);
-                    foreach (string file in fpkContents)
-                    {
-                        if (!GzsLib.IsExtensionValidForArchive(file, fpkDir))
+                        if (!Directory.Exists(fpkFullDir))
                         {
-                            Debug.LogLine(String.Format("[BuildArchive] {0} is not a valid file for a {1} archive.", file, Path.GetExtension(fpkDir)));
-                            continue;
+                            fpkContents = GzsLib.ExtractArchive<FpkFile>(SourceFile, fpkFullDir);
+                            createdTemp = true;
+                        }
+                        else
+                        {
+                             // Directory exists, just list files relative to it
+                             if (Directory.Exists(fpkFullDir))
+                             {
+                                 fpkContents = Directory.GetFiles(fpkFullDir, "*", SearchOption.AllDirectories)
+                                             .Select(f => f.Substring(fpkFullDir.Length + 1).Replace("\\", "/"))
+                                             .ToList();
+                             }
                         }
 
-                        metaData.ModFpkEntries.Add(new ModFpkEntry() {
-                            FilePath = file,
-                            FpkFile = FileName,
-                            ContentHash = Tools.GetMd5Hash(Path.Combine(SourceDir, fpkDir, Tools.ToWinPath(file)))
-                        });
+                        //var fpkContents = GzsLib.ListArchiveContents<FpkFile>(SourceFile); // Destructive if used with ExtractArchive
+                        foreach (string file in fpkContents)
+                        {
+                            if (!GzsLib.IsExtensionValidForArchive(file, fpkDir))
+                            {
+                                Debug.LogLine(String.Format("[BuildArchive] {0} is not a valid file for a {1} archive.", file, Path.GetExtension(fpkDir)));
+                                continue;
+                            }
+
+                            metaData.ModFpkEntries.Add(new ModFpkEntry() {
+                                FilePath = file,
+                                FpkFile = FileName,
+                                ContentHash = Tools.GetMd5Hash(Path.Combine(SourceDir, fpkDir, Tools.ToWinPath(file)))
+                            });
+                        }
+                    }
+                    finally
+                    {
+                        if (createdTemp && Directory.Exists(fpkFullDir))
+                        {
+                            Directory.Delete(fpkFullDir, true);
+                        }
                     }
                 }
             }
@@ -308,6 +353,7 @@ namespace makebite
             foreach (string qarFile in qarFiles)
             {
                 //ZIP: Custom WMV Support
+                //TODO (GZ): Verify if GZ uses same path logic. For now, this is TPP specific.
                 if (qarFile.Contains("Assets\\tpp\\movie\\Win"))
                 {
                     BuildWMVDat(qarFile, SourceDir, ref metaData);
