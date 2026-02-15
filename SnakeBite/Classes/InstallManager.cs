@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using System.Xml.Linq;
 
 
 namespace SnakeBite
@@ -107,18 +108,40 @@ namespace SnakeBite
 
                 Debug.LogLine("[Install] Writing FPK data to Settings", Debug.LogLevel.Basic);
                 AddToSettingsFpk(installEntryList, SBBuildManager, allQarGameFiles, out pullFromVanillas, out pullFromMods, out pathUpdatesExist);
-                InstallMods(ModFiles, SBBuildManager, pullFromVanillas, pullFromMods, ref twoFilesHashSet, ref oneFiles, pathUpdatesExist);
+                
+                // Initialize custom XML containers
+                XDocument customXml01 = new XDocument(new XElement("Entries"));
+                XDocument customXml02 = new XDocument(new XElement("Entries"));
+
+                // Pass twoFilesHashSet as the "primary" target for non-ftex files
+                InstallMods(ModFiles, SBBuildManager, pullFromVanillas, pullFromMods, ref twoFilesHashSet, ref oneFiles, pathUpdatesExist, ref customXml01, ref customXml02);
 
                 if (hasData02)
                 {
                     twoFiles = twoFilesHashSet.ToList();
                     twoFiles.Sort();
-                    GzsLib.WriteQarArchive(GamePaths.chunk0Path + GamePaths.build_ext, "_working2", twoFiles, GzsLib.chunk0Flags);
+                    // Save custom XML if entries exist
+                    string custom02Path = null;
+                    if (customXml02.Root.HasElements)
+                    {
+                        custom02Path = "_working2_custom.xml";
+                        customXml02.Save(custom02Path);
+                    }
+                    GzsLib.WriteQarArchive(GamePaths.chunk0Path + GamePaths.build_ext, "_working2", twoFiles, GzsLib.chunk0Flags, custom02Path);
+                    if(File.Exists(custom02Path)) File.Delete(custom02Path);
                 }
                 if (hasData01)
                 {
                     oneFiles.Sort();
-                    GzsLib.WriteQarArchive(GamePaths.OnePath + GamePaths.build_ext, "_working1", oneFiles, GzsLib.oneFlags);
+                    // Save custom XML if entries exist
+                    string custom01Path = null;
+                    if (customXml01.Root.HasElements)
+                    {
+                        custom01Path = "_working1_custom.xml";
+                        customXml01.Save(custom01Path);
+                    }
+                    GzsLib.WriteQarArchive(GamePaths.OnePath + GamePaths.build_ext, "_working1", oneFiles, GzsLib.oneFlags, custom01Path);
+                    if(File.Exists(custom01Path)) File.Delete(custom01Path);
                 }
 
                 ModManager.PromoteGameDirFiles();
@@ -166,7 +189,7 @@ namespace SnakeBite
         /// <summary>
         /// Merges the new mod files with the existing modded files and vanilla game files.
         /// </summary>
-        private static void InstallMods(List<string> modFilePaths, SettingsManager manager, List<string> pullFromVanillas, List<string> pullFromMods, ref HashSet<string> twoFiles, ref List<string> oneFilesList, Dictionary<string, bool> pathUpdatesExist)
+        private static void InstallMods(List<string> modFilePaths, SettingsManager manager, List<string> pullFromVanillas, List<string> pullFromMods, ref HashSet<string> twoFiles, ref List<string> oneFilesList, Dictionary<string, bool> pathUpdatesExist, ref XDocument customXml01, ref XDocument customXml02)
         {
             //Assumption: modded packs have already been extracted to _working2 directory - qarEntryEditList
             //Assumption: vanilla packs have already been extracted to _gameFpk directory 
@@ -224,6 +247,48 @@ namespace SnakeBite
                     
                 GzsLib.LoadModDictionary(extractedModEntry);
                 ValidateModEntries(ref extractedModEntry);
+
+                // GZ: Custom XML Merging
+                // Check if mod contains 01.xml or 02.xml at root
+                List<string> custom01Files = new List<string> { "01.xml", "data_01.g0s.xml", "01.g0s.xml", "data_01.xml" };
+                foreach (string customFile in custom01Files)
+                {
+                    string custom01 = Path.Combine("_extr", customFile);
+                    if (File.Exists(custom01))
+                    {
+                         Debug.LogLine(String.Format("[Install] Found custom XML {0} in {1}. Merging...", customFile, extractedModEntry.Name), Debug.LogLevel.Basic);
+                         try 
+                         {
+                             XDocument modXml = XDocument.Load(custom01);
+                             if (modXml.Root != null)
+                             {
+                                 customXml01.Root.Add(modXml.Descendants("Entry"));
+                             }
+                             File.Delete(custom01); // Ensure it's not copied to GameDir
+                         }
+                         catch(Exception ex) { Debug.LogLine("[Install] Error merging custom XML: " + ex.Message, Debug.LogLevel.Basic); }
+                    }
+                }
+
+                List<string> custom02Files = new List<string> { "02.xml", "data_02.g0s.xml", "data_02.xml", "02.g0s.xml" };
+                foreach (string customFile in custom02Files)
+                {
+                    string custom02 = Path.Combine("_extr", customFile);
+                    if (File.Exists(custom02))
+                    {
+                         Debug.LogLine(String.Format("[Install] Found custom XML {0} in {1}. Merging...", customFile, extractedModEntry.Name), Debug.LogLevel.Basic);
+                         try 
+                         {
+                             XDocument modXml = XDocument.Load(custom02);
+                             if (modXml.Root != null)
+                             {
+                                 customXml02.Root.Add(modXml.Descendants("Entry"));
+                             }
+                             File.Delete(custom02); // Ensure it's not copied to GameDir
+                         }
+                         catch(Exception ex) { Debug.LogLine("[Install] Error merging custom XML: " + ex.Message, Debug.LogLevel.Basic); }
+                    }
+                }
 
                 Debug.LogLine("[Install] Processing QAR entries...", Debug.LogLevel.Basic);
                 ProcessQarEntries(extractedModEntry, pullFromVanillas, pullFromMods, ref twoFiles, ref oneFilesList);
@@ -402,7 +467,7 @@ namespace SnakeBite
             for (int i = modEntry.ModQarEntries.Count - 1; i >= 0; i--)
             {
                 ModQarEntry qarEntry = modEntry.ModQarEntries[i];
-                if (!GzsLib.IsExtensionValidForArchive(qarEntry.FilePath, ".dat") && !GzsLib.IsExtensionValidForArchive(qarEntry.FilePath, ".g0s"))
+                if (!GzsLib.IsExtensionValidForArchive(qarEntry.FilePath, ".g0s"))
                 {
                     Debug.LogLine(String.Format("[ValidateModEntries] Found invalid file entry {0} for archive {1}", qarEntry.FilePath, qarEntry.SourceName), Debug.LogLevel.Basic);
                     modEntry.ModQarEntries.RemoveAt(i);
@@ -433,15 +498,6 @@ namespace SnakeBite
                         skipFile = true;
                     }
                 }
-                /*
-                foreach (string ignoreExt in ignoreExtList)
-                {
-                    if (fileEntry.FilePath.Contains(ignoreExt))
-                    {
-                        skipFile = true;
-                    }
-                }
-                */
                 if (skipFile == false)
                 {
                     string sourceFile = Path.Combine("_extr\\GameDir", Tools.ToWinPath(fileEntry.FilePath));
@@ -453,7 +509,7 @@ namespace SnakeBite
                         gameData.GameFileEntries.Add(fileEntry);
                 }
             }
-        }//InstallGameDirFiles
+        }
 
         private static void AddToSettingsFpk(List<ModEntry> installEntryList, SettingsManager manager, List<Dictionary<ulong, GameFile>> allQarGameFiles, out List<string> PullFromVanillas, out List<string> pullFromMods, out Dictionary<string, bool> pathUpdatesExist)
         {
@@ -474,28 +530,21 @@ namespace SnakeBite
                     string cleanPath = rawPath;
 
                     // Support GZ prefixes
-                    if (rawPath.StartsWith("/00/") || rawPath.StartsWith("\\00\\"))
-                    {
-                        prefix = "/00/";
-                        cleanPath = rawPath.Substring(4);
-                    }
-                    else if (rawPath.StartsWith("/01/") || rawPath.StartsWith("\\01\\"))
+                    if (rawPath.StartsWith("/01/") || rawPath.StartsWith("\\01\\") || rawPath.StartsWith("/data_01/") || rawPath.StartsWith("\\data_01\\"))
                     {
                         prefix = "/01/";
                         cleanPath = rawPath.Substring(4);
                     }
-                    else if (rawPath.StartsWith("/02/") || rawPath.StartsWith("\\02\\"))
+                    else if (rawPath.StartsWith("/02/") || rawPath.StartsWith("\\02\\") || rawPath.StartsWith("/data_02/") || rawPath.StartsWith("\\data_02\\"))
                     {
                         prefix = "/02/";
                         cleanPath = rawPath.Substring(4);
                     }
 
-                    //Debug.LogLine(string.Format("Attempting to update Qar filename: {0}", modQar.FilePath), Debug.LogLevel.Basic);
                     string unhashedName = HashingExtended.UpdateName(cleanPath);
                     if (unhashedName != null)
                     {
                         string newFullPath = prefix + unhashedName;
-                        //Debug.LogLine(string.Format("Success: {0}", unhashedName), Debug.LogLevel.Basic);
                         newNameDictionary.Add(modQar.FilePath, newFullPath);
                         foundUpdate++;
 

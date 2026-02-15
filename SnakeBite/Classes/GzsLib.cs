@@ -512,7 +512,7 @@ namespace SnakeBite.GzsTool
         }
 
         // Repack QAR/G0S archive
-        public static void WriteQarArchive(string FileName, string SourceDirectory, List<string> Files, uint Flags)
+        public static void WriteQarArchive(string FileName, string SourceDirectory, List<string> Files, uint Flags, string CustomXmlPath = null)
         {
              Debug.LogLine(String.Format("[GzsLib] Writing archive: {0}", FileName));
              
@@ -544,6 +544,37 @@ namespace SnakeBite.GzsTool
                     new XAttribute("FilePath", Tools.ToQarPath(s)),
                     new XAttribute("Compressed", compressed)
                  ));
+             }
+             // Merge Custom XML Entries
+             if (!string.IsNullOrEmpty(CustomXmlPath) && File.Exists(CustomXmlPath))
+             {
+                 Debug.LogLine(String.Format("[GzsLib] Merging custom XML entries from: {0}", CustomXmlPath));
+                 try 
+                 {
+                     XDocument customDoc = XDocument.Load(CustomXmlPath);
+                     if (customDoc.Root != null)
+                     {
+                         // Support both raw list of Entries or full ArchiveFile structure
+                         var customEntries = customDoc.Descendants("Entry"); 
+                         foreach(var entry in customEntries)
+                         {
+                             // Deduplication logic could go here, but GzsTool might handle overrides.
+                             // For safety, let's remove existing entry if path matches.
+                             string path = (string)entry.Attribute("FilePath");
+                             if(path != null)
+                             {
+                                 var existing = entries.Elements("Entry").FirstOrDefault(e => (string)e.Attribute("FilePath") == path);
+                                 if(existing != null) existing.Remove();
+                                 
+                                 entries.Add(entry);
+                             }
+                         }
+                     }
+                 }
+                 catch (Exception ex)
+                 {
+                     Debug.LogLine(String.Format("[GzsLib] Error merging custom XML: {0}", ex.Message));
+                 }
              }
              
              XDocument doc = new XDocument(
