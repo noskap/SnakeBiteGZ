@@ -13,8 +13,8 @@ xcopy /y %solutionDir%mgsvpreset.ico %solutionDir%installerbuild\
 
 xcopy /y %targetDir%SnakeBite.exe %solutionDir%installerbuild\
 xcopy /y %targetDir%SnakeBite.exe.config %solutionDir%installerbuild\
-REM xcopy /y %targetDir%MakeBite.exe %solutionDir%installerbuild\ - done from makebites solution
-REM xcopy /y %targetDir%MakeBite.exe.config %solutionDir%installerbuild\ - done from makebites solution
+REM xcopy /y %targetDir%MakeBiteGZ.exe %solutionDir%installerbuild\ - done from makebites solution
+REM xcopy /y %targetDir%MakeBiteGZ.exe.config %solutionDir%installerbuild\ - done from makebites solution
 xcopy /y %targetDir%CityHash.dll %solutionDir%installerbuild\
 xcopy /y %targetDir%GzsTool.Core.dll %solutionDir%installerbuild\
 xcopy /y %targetDir%ICSharpCode.SharpZipLib.dll %solutionDir%installerbuild\
