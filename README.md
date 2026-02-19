@@ -1,75 +1,85 @@
-# SnakeBite
-SnakeBite is a mod manager/launcher for Metal Gear Solid V (PC/Steam).
-Releases at Nexusmods: https://www.nexusmods.com/metalgearsolidvtpp/mods/106
-Current fork at: https://github.com/TinManTex/SnakeBite
+# SnakeBiteGZ
+SnakeBiteGZ is a mod manager/launcher for Metal Gear Solid V: Ground Zeroes (Steam). This mod wouldn't be possible without all the hardworking modders who have been modding this game for years. 
 
-// TODO mention new features, xml merging with custom entry support (for custom texture mods), loose g0s support
-// Explain how makebite works, it doesnt repack fpks, just throws file replacements in 
-// Explain differences with base snakebite (g0s support, no .dat support, no chunk7 support)
-// TODO add unit tests, surely we can automate some basic model swaps and use md5 checksums to ensure the g0s archive are what we expect
-// TODO start game doesnt seem to work properly
-## Getting started with SnakeBite
-Before running makebite make sure the 00.dat and 01.dat in MGSV_TPP\master\0 are unmodified.
+Based on the fork at: https://github.com/TinManTex/SnakeBite
+
+https://github.com/noskap/SnakeBiteGZ
+
+### Future Features
+- Fork GzsLib and unify classes between makebite and snakebite
+- Fix RevertChanges.MGSVPreset
+- Fix Start game not working properly
+- Unit tests using md5 checksums
+
+### Key Features
+- **Full support for MGSV:GZ**: Supports unpacking repacking of g0s archives, as well as .mgsvgz mod files.
+- **XML Merging**: Supports merging custom entries into `01.xml` (for `data_01.g0s`) and `02.xml` (for `data_02.g0s`). This is particularly useful for custom texture mods that need to register new file paths.
+
+### How MakeBite Works
+MakeBite for GZ has been updated to use the internal `GzsLib` library. Unlike the TPP version which might repack archives, this version generates a mod file that tells SnakeBiteGZ to inject file replacements directly into the game's `data_01.g0s` or `data_02.g0s` archives without fully repacking nested FPKs.
+
+### Differences from SnakeBite (TPP)
+- **Archive Targets**: Operates on `data_01.g0s` and `data_02.g0s` instead of TPP's `00.dat` and `01.dat`.
+- **No Chunk7/Texture7**: The "Archive Expand" logic (migrating files to `chunk7.dat`) has been removed as it is specific to TPP.
+- **G0S Support**: Native handling of Ground Zeroes' specific archive format.
+
+## Getting started with SnakeBiteGZ
+Before running makebite make sure the data_01.g0s and data_02.g0s in \MgsGroundZeroes\ are unmodified.
 Use the validate game cache option via steam if nessesary.
 
-When you first run the application, you will be greeted by the setup wizard. This will walk you through the steps required to run SnakeBite.
+When you first run the application, you will be greeted by the setup wizard. This will walk you through the steps required to run SnakeBiteGZ.
 
 During the setup process you will be prompted to
 
-1. Select your MGSV installation directory
+1. Select your MGSVGZ installation directory
 2. Create a backup of the game data
-3. Modify game data to prepare for modding
- 
-Some of the game data needs to be modified to allow for easier installation of mods. During setup, any MGSV system data contained in 00.dat will be moved into 01.dat. Afterwards, any files installed by SnakeBite can be installed into 00.dat with minimal risk of conflicting with the game files.
 
 ## Mods and Mod Files
 Mods can be installed and uninstalled by selecting **MODS** from the main window. Additionally, you can temporarily disable/enable all mods by clicking the toggle switch next to **MODS**.
 
-If the mod you wish to install is available as a .MGSV file, it is the recommended way to install mods using SnakeBite. If not, SnakeBite provides basic functionality to install unsupported mods.
+If the mod you wish to install is available as a .MGSVGZ file, it is the recommended way to install mods using SnakeBiteGZ. If not, SnakeBiteGZ provides basic functionality to install unsupported mods.
 
-### If your mod is a **.MGSV**:
+### If your mod is a **.MGSVGZ**:
 
-Click "Install .MGSV" from the mod manager window and select the mod you wish to install.
+Click "Install .MGSVGZ" from the mod manager window and select the mod you wish to install.
 
 ## Mod Preset Files
-A 'Mod Preset' is a collection of mods which can be saved and loaded with SnakeBite. Saving a Preset will pack your current modded game data into a .MGSVPreset file. Loading a Preset will simply replace your game data with the files stored in the .MGSVPreset file. Presets are a fast and simple method of organizing your favorite mods or trying new mod combinations. You can also utilize Presets as restore checkpoints if SnakeBite encounters a serious error or your game data becomes corrupted. 
-
-By default, SnakeBite creates 'RevertChanges.MGSVPreset' before a mod installation/uninstallation, so you can easily undo an action if it caused a critical error. However, saving a large number of mods needs a bit of time and storage space, so you can choose to skip this option by unchecking the 'Save RevertChanges.MGSVPreset' checkbox in the Settings menu. RevertChanges.MGSVPreset is saved to your Game Directory.
+A 'Mod Preset' is a collection of mods which can be saved and loaded with SnakeBiteGZ. Saving a Preset will pack your current modded game data into a .MGSVPreset file. Loading a Preset will simply replace your game data with the files stored in the .MGSVPreset file. Presets are a fast and simple method of organizing your favorite mods or trying new mod combinations. You can also utilize Presets as restore checkpoints if SnakeBiteGZ encounters a serious error or your game data becomes corrupted. 
 
 # Troubleshooting
-For those with issues with Snakebite try:
+For those with issues with SnakeBiteGZ try:
 
-Do not use the Install .ZIP option, instead extract the mods .mgsv file that's in the mods .zip and use Install .MGSV
+Do not use the Install .ZIP option, instead extract the mods .mgsvgz file that's in the mods .zip and use Install .MGSVGZ
 
 Installing Microsoft .Net 4.6.1:
 https://www.microsoft.com/en-us/download/details.aspx?id=49981
 
-If you have a warning about permissions try right clicking Snakebites shortcut and choosing Run as administrator
-Or try reinstalling Snakebite to a different folder than it's default.
+If you have a warning about permissions try right clicking SnakeBiteGZ shortcut and choosing Run as administrator
+Or try reinstalling SnakeBiteGZ to a different folder than it's default.
 
 When using the revalidate option it will likely pop up the steam process in the background, make sure you wait till it's finished.
 
 To manually revalidate the files through steam:
-Right click on Metal Gear Solid V in Steam
+Right click on Metal Gear Solid V: Ground Zeroes in Steam
 Choose properties from the right click menu
 Click the Local Files tab
 Click Verify Integrity of Game Cache.
 Wait till it says it's complete.
 
-If you get "The selected mod conflicts with existing MGSV system files" warning then snakebite has likely messed up it's data xml and added mod files to it's default files list.
-The only solution is to hit Restore Original Game Files in the snakebite settings. Verify MGSVs game cache (through steam, not snakebite) to make sure everything is default and try again.
+If you get "The selected mod conflicts with existing MGSV system files" warning then SnakeBiteGZ has likely messed up it's data xml and added mod files to it's default files list.
+The only solution is to hit Restore Original Game Files in the SnakeBiteGZ settings. Verify MGSVs game cache (through steam, not SnakeBiteGZ) to make sure everything is default and try again.
 While the disable compatability check setting will bypass this, it is likely to cause problems with the game.
 
-Snakebite prints information to Log.txt in its install folder.
-Check this before you close snakebite (since it's cleared on next snakebite start) to see if there's any error messages. 
+SnakeBiteGZ prints information to Log.txt in its install folder.
+Check this before you close SnakeBiteGZ (since it's cleared on next SnakeBiteGZ start) to see if there's any error messages. 
 
 # Mod Developers
 
-Use MakeBite (included) to create .MGSV mod files compatible with SnakeBite
+Use MakeBite (included) to create .MGSVGZ mod files compatible with SnakeBiteGZ
 
 For information regarding using makebite to create mod files, please see here: https://github.com/topher-au/SnakeBite/wiki/Using-MakeBite
 
-In addition to this, files inside a folder named GameDir will be installed to the MGS_TPP folder.
+In addition to this, files inside a folder named GameDir will be installed to the MgsGroundZeroes folder.
 
 # Command-line args
 Makebite just takes the input path (that you'd normally browse to) and outputs mod.mgsv there.
@@ -83,7 +93,7 @@ Snakebites args:
 (as the only arg)
 Same as settings > Restore original game files button.
 
--i <path to .mgsv file>
+-i <path to .mgsvgz file>
 install - the -i can be ommitted, path can also be a folder of .mgsvs, and any other paths passed in as args will also be processed.
 This means you can install by drag-and-drop onto snakebite.exe or using shortcut in windows send-to menu.
 
@@ -103,6 +113,3 @@ this was to smooth over my 'build tool' process - which basically just copies ov
 # Found a bug?
 
 Please submit a bug report to GitHub with as much detail as possible. Please include log.txt, which is accessed by double clicking the version in the main window, or found in your SnakeBite install directory (default %LocalAppData%\SnakeBite). Warning: the logfile is reset every time you launch SnakeBite so please save it immediately after the application crashes.
-
-# Snakebite Developers
-See Developers.txt
