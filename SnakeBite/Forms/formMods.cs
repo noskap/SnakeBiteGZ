@@ -413,7 +413,7 @@ namespace SnakeBite
 
         private void menuItemOpenMakeBite_Click(object sender, EventArgs e)
         {
-            string makeBitePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "makebite.exe");
+            string makeBitePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "MakeBiteGZ.exe");
 
             try
             {

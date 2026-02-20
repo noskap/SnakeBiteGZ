@@ -75,8 +75,8 @@ Section "SnakeBite" SecMain
   ;ADD YOUR OWN FILES HERE..., dont forget to update uninstall too
   File "SnakeBite.exe"
   File "SnakeBite.exe.config"
-  File "MakeBite.exe"
-  File "MakeBite.exe.config"
+  File "MakeBiteGZ.exe"
+  File "MakeBiteGZ.exe.config"
   File "CityHash.dll"
   File "GzsTool.Core.dll"
   File "ICSharpCode.SharpZipLib.dll"
@@ -162,7 +162,7 @@ Section "SnakeBite" SecMain
 	;Create shortcuts
 	CreateDirectory "$SMPROGRAMS\$StartMenuFolder"
 	CreateShortcut "$SMPROGRAMS\$StartMenuFolder\SnakeBite.lnk" "$INSTDIR\SnakeBite.exe"
-	CreateShortcut "$SMPROGRAMS\$StartMenuFolder\MakeBite.lnk" "$INSTDIR\MakeBite.exe"
+	CreateShortcut "$SMPROGRAMS\$StartMenuFolder\MakeBiteGZ.lnk" "$INSTDIR\MakeBiteGZ.exe"
 	CreateShortcut "$SMPROGRAMS\$StartMenuFolder\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
 	CreateShortCut "$DESKTOP\SnakeBite.lnk" "$INSTDIR\SnakeBite.exe"
   
@@ -189,8 +189,8 @@ Section "Uninstall"
   ;ADD YOUR OWN FILES HERE...
   Delete "$INSTDIR\SnakeBite.exe"
   Delete "$INSTDIR\SnakeBite.exe.config"
-  Delete "$INSTDIR\MakeBite.exe"
-  Delete "$INSTDIR\MakeBite.exe.config"
+  Delete "$INSTDIR\MakeBiteGZ.exe"
+  Delete "$INSTDIR\MakeBiteGZ.exe.config"
   Delete "$INSTDIR\CityHash.dll"
   Delete "$INSTDIR\GzsTool.Core.dll"
   Delete "$INSTDIR\ICSharpCode.SharpZipLib.dll"
@@ -208,9 +208,9 @@ Section "Uninstall"
 
  !insertmacro MUI_STARTMENU_GETFOLDER Application $StartMenuFolder
   Delete "$DESKTOP\SnakeBite.lnk"
-  Delete "$DESKTOP\MakeBite.lnk"
+  Delete "$DESKTOP\MakeBiteGZ.lnk"
   Delete "$SMPROGRAMS\$StartMenuFolder\SnakeBite.lnk"
-  Delete "$SMPROGRAMS\$StartMenuFolder\MakeBite.lnk"
+  Delete "$SMPROGRAMS\$StartMenuFolder\MakeBiteGZ.lnk"
   Delete "$SMPROGRAMS\$StartMenuFolder\Uninstall.lnk"
   RMDir "$SMPROGRAMS\$StartMenuFolder"
 
