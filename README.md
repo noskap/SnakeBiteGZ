@@ -5,11 +5,12 @@ Based on the fork at: https://github.com/TinManTex/SnakeBite
 
 https://github.com/noskap/SnakeBiteGZ
 
-### Future Features
+### Future work
 - Fork GzsLib and unify classes between makebite and snakebite
 - Fix RevertChanges.MGSVPreset
 - Fix Start game not working properly
 - Unit tests using md5 checksums
+- Add more entries to the QAR Dictionary
 
 ### Key Features
 - **Full support for MGSV:GZ**: Supports unpacking repacking of g0s archives, as well as .mgsvgz mod files.
@@ -22,6 +23,12 @@ MakeBite for GZ has been updated to use the internal `GzsLib` library. Unlike th
 - **Archive Targets**: Operates on `data_01.g0s` and `data_02.g0s` instead of TPP's `00.dat` and `01.dat`.
 - **No Chunk7/Texture7**: The "Archive Expand" logic (migrating files to `chunk7.dat`) has been removed as it is specific to TPP.
 - **G0S Support**: Native handling of Ground Zeroes' specific archive format.
+
+### Why does this exist?
+Because I felt like it, and honestly, I wanted a cleaner way to be able to share GZ mods with my friends without doing a lot of horrible manual unpacking and file managing, even if it means I had to strip back features to make it worth with the older archive system.
+
+### GZ has already been ported to TPP. Isn't this pointless?
+Maybe to you, but to me, Ground Zeroes is this special little toybox game I've always loved tinkering with. I also don't want to see it fall into obscurity and be forgotten. The modding scene for GZ is basically non-existant. If this Mod Manager gets even just one more person into GZ modding, I'll be satisfied.
 
 ## Getting started with SnakeBiteGZ
 Before running makebite make sure the data_01.g0s and data_02.g0s in \MgsGroundZeroes\ are unmodified.
