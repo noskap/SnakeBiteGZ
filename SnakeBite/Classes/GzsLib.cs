@@ -158,8 +158,7 @@ namespace SnakeBite.GzsTool
                 {
                     if (Path.GetFullPath(sourceDir).TrimEnd('\\') != Path.GetFullPath(OutputPath).TrimEnd('\\'))
                     {
-                        if (Directory.Exists(OutputPath)) Directory.Delete(OutputPath, true);
-                        Directory.Move(sourceDir, OutputPath);
+                        Util.MoveDirectory(sourceDir, OutputPath);
                     }
                     
                     // List all files
@@ -614,8 +613,22 @@ namespace SnakeBite.GzsTool
                  // Output should be xmlName (safeName.g0s). Rename to FileName.
                  if (File.Exists(tempOutputPath))
                  {
-                     if (File.Exists(FileName)) File.Delete(FileName);
-                     File.Move(tempOutputPath, FileName);
+                     int retries = 5;
+                     while (retries > 0)
+                     {
+                         try
+                         {
+                             if (File.Exists(FileName)) File.Delete(FileName);
+                             File.Move(tempOutputPath, FileName);
+                             break;
+                         }
+                         catch (Exception)
+                         {
+                             retries--;
+                             System.Threading.Thread.Sleep(500);
+                             if (retries == 0) throw;
+                         }
+                     }
                  }
              }
              finally
