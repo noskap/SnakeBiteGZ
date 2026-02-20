@@ -44,8 +44,6 @@ During the setup process you will be prompted to
 ## Mods and Mod Files
 Mods can be installed and uninstalled by selecting **MODS** from the main window. Additionally, you can temporarily disable/enable all mods by clicking the toggle switch next to **MODS**.
 
-If the mod you wish to install is available as a .MGSVGZ file, it is the recommended way to install mods using SnakeBiteGZ. If not, SnakeBiteGZ provides basic functionality to install unsupported mods.
-
 ### If your mod is a **.MGSVGZ**:
 
 Click "Install .MGSVGZ" from the mod manager window and select the mod you wish to install.
