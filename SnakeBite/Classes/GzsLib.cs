@@ -537,13 +537,12 @@ namespace SnakeBite.GzsTool
              {
                  if (s.EndsWith("_unknown")) { continue; }
                  bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); 
-                 // Fix: Do NOT include folderName in FilePath as GzsTool searches relative to it.
-                 // Fix: Ensure forward slashes for QAR hashing lookup (avoid flattening).
                  entries.Add(new XElement("Entry", 
                     new XAttribute("FilePath", Tools.ToQarPath(s)),
                     new XAttribute("Compressed", compressed)
                  ));
              }
+
              // Merge Custom XML Entries
              if (!string.IsNullOrEmpty(CustomXmlPath) && File.Exists(CustomXmlPath))
              {

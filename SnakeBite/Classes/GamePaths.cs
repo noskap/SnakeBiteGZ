@@ -16,8 +16,6 @@ namespace SnakeBite
         internal static string OnePath { get { return Properties.Settings.Default.InstallPath + "\\data_01.g0s"; } }
         internal static string ZeroPath { get { return Properties.Settings.Default.InstallPath + "\\data_00.g0s"; } }
         
-        // Unused in GZ or need mapping? Kept for compilation compatibility for now
-
         internal static string SnakeBiteSettings { get { return Properties.Settings.Default.InstallPath + "\\snakebite.xml"; } }
         internal static string GameDirSB_Build { get { return Properties.Settings.Default.InstallPath + "\\GameDir_SB_Build"; } }
         internal static string GameDirBackup_Build { get { return Properties.Settings.Default.InstallPath + "\\GameDir_Backup_Build"; } }
