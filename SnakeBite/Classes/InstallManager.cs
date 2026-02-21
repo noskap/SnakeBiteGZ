@@ -208,6 +208,7 @@ namespace SnakeBite
 
                 Debug.LogLine("[Install] Load mod metadata", Debug.LogLevel.Basic);
                 ModEntry extractedModEntry = new ModEntry("_extr\\metadata.xml");
+                
                 if (pathUpdatesExist[extractedModEntry.Name])
                 {
                     Debug.LogLine(string.Format("[Install] Checking for Qar path updates: {0}", extractedModEntry.Name), Debug.LogLevel.Basic);

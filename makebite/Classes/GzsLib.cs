@@ -336,6 +336,7 @@ namespace SnakeBite.GzsTool
              
              string fpkType = FileName.EndsWith(".fpkd") ? "Fpkd" : "Fpk"; // Type enum string match
              string xsiType = "FpkFile";
+             
              Files = SortFpksFiles(fpkType.ToLower(), Files);
 
              XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
