@@ -62,6 +62,12 @@ https://www.microsoft.com/en-us/download/details.aspx?id=49981
 If you have a warning about permissions try right clicking SnakeBiteGZ shortcut and choosing Run as administrator
 Or try reinstalling SnakeBiteGZ to a different folder than it's default.
 
+## Running Unit Tests
+If you intend to contribute to the codebase, you can execute the unit tests by running `build.bat` and selecting `3. Run Tests`. 
+
+**Note for Developers:** Game archives are excluded from this repository due to size and copyright constraints. To run the test suite locally, you must extract a completely clean, vanilla copy of `data_02.g0s` (approx 1.5GB) from your Steam installation and place it at:
+`[Repository Root]\gz\data_02.g0s`
+
 When using the revalidate option it will likely pop up the steam process in the background, make sure you wait till it's finished.
 
 To manually revalidate the files through steam:
