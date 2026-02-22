@@ -23,11 +23,11 @@ namespace SnakeBite.GzsTool
         private static Dictionary<string, List<string>> archiveExtensions = new Dictionary<string, List<string>> {
             {"dat",new List<string> { // TPP legacy
                 "bnk", "dat", "ffnt", "fmtt", "fpk", "fpkd", "fsm", "fsop", "ftex", "ftexs",
-                "json", "lua", "pftxs", "sbp", "subp", "wem",
+                "json", "lua", "pftxs", "sbp", "subp", "wem", "xml"
             }},
             {"g0s",new List<string> { // GZ
                 "bnk", "dat", "ffnt", "fmtt", "fpk", "fpkd", "fsm", "fsop", "ftex", "ftexs",
-                "json", "lua", "pftxs", "sbp", "subp", "wem",
+                "json", "lua", "pftxs", "sbp", "subp", "wem", "xml"
             }},
             {"fpk",new List<string> {
                 "caar", "fnt", "atsh", "frig", "adm", "frt", "fpkl", "fsm", "ftdp", "geobv",
@@ -35,11 +35,11 @@ namespace SnakeBite.GzsTool
                 "mtar", "nav2", "nta", "rdf", "ends", "sand", "mbl", "tcvp", "spch", "trap",
                 "uigb", "uilb", "pcsp", "tre2", "fstb", "twpf", "fv2t", "fmdl", "geom", "gskl",
                 "fcnp", "frdv", "fdes", "fclo", "uif", "uia", "subp", "sani", "ladb", "frl",
-                "fv2", "obr", "lng2", "mtard", "obrb", "dfrm"
+                "fv2", "obr", "lng2", "mtard", "obrb", "dfrm", "lani", "lad", "gani", "fova", "vfxdb", "xml"
             }},
             {"fpkd",new List<string> {
                 "fox2", "evf", "parts", "vfxlb", "vfx", "vfxlf", "veh", "frld", "des", "bnd",
-                "tgt", "phsd", "ph", "sim", "clo", "fsd", "sdf", "lua", "lng",
+                "tgt", "phsd", "ph", "sim", "clo", "fsd", "sdf", "lua", "lng", "lani", "lad", "gani", "fova", "vfxdb", "xml"
             }},
         };
 

@@ -219,15 +219,20 @@ namespace SnakeBite
                         string cleanPath = rawPath;
 
                         if (rawPath.StartsWith("/00/") || rawPath.StartsWith("\\00\\") ||
-                            rawPath.StartsWith("/02/") || rawPath.StartsWith("\\02\\"))
+                            rawPath.StartsWith("/02/") || rawPath.StartsWith("\\02\\") ||
+                            rawPath.StartsWith("/data_00/") || rawPath.StartsWith("\\data_00\\") ||
+                            rawPath.StartsWith("/data_02/") || rawPath.StartsWith("\\data_02\\"))
                         {
-                            prefix = rawPath.Substring(0, 4);
-                            cleanPath = rawPath.Substring(4);
+                            int pLen = rawPath.StartsWith("/0") || rawPath.StartsWith("\\0") ? 4 : 9;
+                            prefix = rawPath.Substring(0, pLen);
+                            cleanPath = rawPath.Substring(pLen);
                         }
-                        else if (rawPath.StartsWith("/01/") || rawPath.StartsWith("\\01\\"))
+                        else if (rawPath.StartsWith("/01/") || rawPath.StartsWith("\\01\\") ||
+                                 rawPath.StartsWith("/data_01/") || rawPath.StartsWith("\\data_01\\"))
                         {
-                            prefix = rawPath.Substring(0, 4);
-                            cleanPath = rawPath.Substring(4);
+                            int pLen = rawPath.StartsWith("/0") || rawPath.StartsWith("\\0") ? 4 : 9;
+                            prefix = rawPath.Substring(0, pLen);
+                            cleanPath = rawPath.Substring(pLen);
                         }
 
                         if (!cleanPath.StartsWith("/Assets/")) continue;
@@ -325,26 +330,32 @@ namespace SnakeBite
                 bool forceOne = false;
                 bool forceTwo = false;
 
-                if (rawPath.StartsWith("/00/") || rawPath.StartsWith("\\00\\"))
+                if (rawPath.StartsWith("/00/") || rawPath.StartsWith("\\00\\") ||
+                    rawPath.StartsWith("/data_00/") || rawPath.StartsWith("\\data_00\\"))
                 {
                     // data_00 support - for now redirect to 02 or ignore? User asked for multi-archive.
                     // If we don't have _working0 setup, we can't really support it fully without more changes.
                     // But for GZ, maybe just 01/02 is enough? User mentioned 01 and 02.
                     // Let's support 01 and 02 explicitly.
-                    installPath = rawPath.Substring(4);
+                    int pLen = rawPath.StartsWith("/0") || rawPath.StartsWith("\\0") ? 4 : 9;
+                    installPath = rawPath.Substring(pLen);
                     // 00 -> Ignore or mapped to 02?
                     targetDir = "_working2"; 
                 }
-                else if (rawPath.StartsWith("/01/") || rawPath.StartsWith("\\01\\"))
+                else if (rawPath.StartsWith("/01/") || rawPath.StartsWith("\\01\\") ||
+                         rawPath.StartsWith("/data_01/") || rawPath.StartsWith("\\data_01\\"))
                 {
                     targetDir = "_working1";
-                    installPath = rawPath.Substring(4);
+                    int pLen = rawPath.StartsWith("/0") || rawPath.StartsWith("\\0") ? 4 : 9;
+                    installPath = rawPath.Substring(pLen);
                     forceOne = true;
                 }
-                else if (rawPath.StartsWith("/02/") || rawPath.StartsWith("\\02\\"))
+                else if (rawPath.StartsWith("/02/") || rawPath.StartsWith("\\02\\") ||
+                         rawPath.StartsWith("/data_02/") || rawPath.StartsWith("\\data_02\\"))
                 {
                     targetDir = "_working2";
-                    installPath = rawPath.Substring(4);
+                    int pLen = rawPath.StartsWith("/0") || rawPath.StartsWith("\\0") ? 4 : 9;
+                    installPath = rawPath.Substring(pLen);
                     forceTwo = true;
                 }
                 else
@@ -536,12 +547,12 @@ namespace SnakeBite
                     if (rawPath.StartsWith("/01/") || rawPath.StartsWith("\\01\\") || rawPath.StartsWith("/data_01/") || rawPath.StartsWith("\\data_01\\"))
                     {
                         prefix = "/01/";
-                        cleanPath = rawPath.Substring(4);
+                        cleanPath = rawPath.Substring(rawPath.StartsWith("/0") || rawPath.StartsWith("\\0") ? 4 : 9);
                     }
                     else if (rawPath.StartsWith("/02/") || rawPath.StartsWith("\\02\\") || rawPath.StartsWith("/data_02/") || rawPath.StartsWith("\\data_02\\"))
                     {
                         prefix = "/02/";
-                        cleanPath = rawPath.Substring(4);
+                        cleanPath = rawPath.Substring(rawPath.StartsWith("/0") || rawPath.StartsWith("\\0") ? 4 : 9);
                     }
 
                     string unhashedName = HashingExtended.UpdateName(cleanPath);
@@ -583,6 +594,11 @@ namespace SnakeBite
                         cleanPath.StartsWith("\\00\\") || cleanPath.StartsWith("\\01\\") || cleanPath.StartsWith("\\02\\"))
                     {
                         cleanPath = cleanPath.Substring(4);
+                    }
+                    else if (cleanPath.StartsWith("/data_00/") || cleanPath.StartsWith("/data_01/") || cleanPath.StartsWith("/data_02/") ||
+                             cleanPath.StartsWith("\\data_00\\") || cleanPath.StartsWith("\\data_01\\") || cleanPath.StartsWith("\\data_02\\"))
+                    {
+                        cleanPath = cleanPath.Substring(9);
                     }
 
                     if (modQarFiles.Any(entry => entry == cleanPath || entry == modQarFilePath))
