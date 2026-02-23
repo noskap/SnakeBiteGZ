@@ -88,10 +88,16 @@ namespace SnakeBite.GzsTool
                 process.BeginErrorReadLine();
                 process.WaitForExit();
 
+                // Wait for the async streams to finish processing to guarantee GzsTool's file locks are completely released
+                process.CancelOutputRead();
+                process.CancelErrorRead();
+
                 if (outputLines.Count > 0) Debug.LogLine(String.Format("[GzsTool] {0}", string.Join(Environment.NewLine, outputLines)));
                 if (errorLines.Count > 0) Debug.LogLine(String.Format("[GzsTool Error] {0}", string.Join(Environment.NewLine, errorLines)));
 
-                return process.ExitCode == 0;
+                int exitCode = process.ExitCode;
+                process.Close();
+                return exitCode == 0;
             }
         }
 
@@ -115,21 +121,23 @@ namespace SnakeBite.GzsTool
             // E.g. data_00.g0s -> data_00_g0s (or similar, need to verify strict naming)
             // Or usually [filename]_[extension] without dot
             
+            string fullPath = Path.GetFullPath(FileName);
+
             // Allow GzsTool to do its thing
-            if(RunGzsTool(String.Format("\"{0}\"", FileName)))
+            if(RunGzsTool(String.Format("\"{0}\"", fullPath)))
             {
                 // Move extracted folder to OutputPath if needed
                 // GzsTool v0.2 output folder naming convention: [Filename]_[Extension w/o dot]
                 string expectedDirName = Path.GetFileName(FileName).Replace(".", "_");
                 string expectedDirNameAlt = Path.GetFileNameWithoutExtension(FileName);
                 
-                string sourceDir = Path.Combine(Path.GetDirectoryName(FileName), expectedDirName);
+                string sourceDir = Path.Combine(Path.GetDirectoryName(fullPath), expectedDirName);
 
                 // Check paths
                 if (!Directory.Exists(sourceDir))
                 {
                     // Check alt name in source dir
-                    string sourceDirAlt = Path.Combine(Path.GetDirectoryName(FileName), expectedDirNameAlt);
+                    string sourceDirAlt = Path.Combine(Path.GetDirectoryName(fullPath), expectedDirNameAlt);
                     if (Directory.Exists(sourceDirAlt))
                     {
                         sourceDir = sourceDirAlt;
@@ -276,7 +284,7 @@ namespace SnakeBite.GzsTool
              
              try
              {
-                 if(RunGzsTool(String.Format("\"{0}\"", fpkPath)))
+                 if(RunGzsTool(String.Format("\"{0}\"", Path.GetFullPath(fpkPath))))
                  {
                      if (File.Exists(xmlPath))
                      {
@@ -542,7 +550,7 @@ namespace SnakeBite.GzsTool
                  }
                  
                  // Run Repack
-                 RunGzsTool(String.Format("\"{0}\"", xmlPath));
+                 RunGzsTool(String.Format("\"{0}\"", Path.GetFullPath(xmlPath)));
              }
              finally
              {
@@ -661,7 +669,7 @@ namespace SnakeBite.GzsTool
                  if (File.Exists(tempOutputPath)) File.Delete(tempOutputPath);
 
                  // Run Repack
-                 RunGzsTool(String.Format("\"{0}\"", xmlPath));
+                 RunGzsTool(String.Format("\"{0}\"", Path.GetFullPath(xmlPath)));
 
                  if(File.Exists(xmlPath)) File.Delete(xmlPath);
                  
@@ -674,7 +682,8 @@ namespace SnakeBite.GzsTool
                          try
                          {
                              if (File.Exists(FileName)) File.Delete(FileName);
-                             File.Move(tempOutputPath, FileName);
+                             File.Copy(tempOutputPath, FileName, true);
+                             File.Delete(tempOutputPath);
                              break;
                          }
                          catch (Exception)
@@ -704,29 +713,39 @@ namespace SnakeBite.GzsTool
 
         }
         
-        // Helper since Directory.Move has limitations (e.g. existing dest)
-        private static class Util 
-        {
-             public static void MoveDirectory(string source, string dest)
-             {
-                 int retries = 5;
-                 while (retries > 0)
-                 {
-                     try
-                     {
-                         if (Directory.Exists(dest)) Directory.Delete(dest, true);
-                         Directory.Move(source, dest);
-                         return;
-                     }
-                     catch (IOException)
-                     {
-                         retries--;
-                         System.Threading.Thread.Sleep(200);
-                         if (retries == 0) throw;
-                     }
-                 }
-             }
-        }
+         private static class Util 
+         {
+              public static void MoveDirectory(string source, string dest)
+              {
+                  int retries = 5;
+                  while (retries > 0)
+                  {
+                      try
+                      {
+                          if (!Directory.Exists(dest)) Directory.CreateDirectory(dest);
+                          
+                          foreach (string dirPath in Directory.GetDirectories(source, "*", SearchOption.AllDirectories))
+                          {
+                              Directory.CreateDirectory(dirPath.Replace(source, dest));
+                          }
+
+                          foreach (string newPath in Directory.GetFiles(source, "*.*", SearchOption.AllDirectories))
+                          {
+                              File.Copy(newPath, newPath.Replace(source, dest), true);
+                          }
+
+                          Directory.Delete(source, true);
+                          return;
+                      }
+                      catch (IOException)
+                      {
+                          retries--;
+                          System.Threading.Thread.Sleep(500);
+                          if (retries == 0) throw;
+                      }
+                  }
+              }
+         }
 
         public static void PromoteQarArchive(string sourcePath, string destinationPath)
         {
