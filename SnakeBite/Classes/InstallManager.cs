@@ -399,7 +399,7 @@ namespace SnakeBite
                 string existingQarSource = null;
 
                 // Check for FPK merge conditions
-                if (pullFromMods.FirstOrDefault(e => e == installPath) != null) // Note: pullFromMods uses CORRECTED path
+                if (pullFromMods.FirstOrDefault(e => e == rawPath) != null) // Note: pullFromMods uses the prefixed path
                 {
                     // If AddToSettingsFpk saw the prefixed path, it added the prefixed path to pullFromMods.
                     // We need to match that.
@@ -407,17 +407,17 @@ namespace SnakeBite
                 }
                 else
                 {
-                    int indexToRemove = pullFromVanillas.FindIndex(m => m == installPath); 
+                    int indexToRemove = pullFromVanillas.FindIndex(m => m == rawPath); 
                     if (indexToRemove >= 0)
                     {
-                        existingQarSource = Path.Combine("_gameFpk", winInstallPath.TrimStart('\\'));
-                        pullFromVanillas.RemoveAt(indexToRemove); pullFromMods.Add(installPath);
+                        existingQarSource = Path.Combine("_gameFpk", Tools.ToWinPath(rawPath).TrimStart('\\'));
+                        pullFromVanillas.RemoveAt(indexToRemove); pullFromMods.Add(rawPath);
                     }
                     else
                     {
                         existingQarSource = null;
-                        if (installPath.EndsWith(".fpk") || installPath.EndsWith(".fpkd"))
-                            pullFromMods.Add(installPath); 
+                        if (rawPath.EndsWith(".fpk") || rawPath.EndsWith(".fpkd"))
+                            pullFromMods.Add(rawPath); 
                     }
                 }
 
@@ -642,7 +642,19 @@ namespace SnakeBite
             foreach (ModFpkEntry newFpkEntry in newModFpkEntries) // this will add the fpkentry listings (repair entries) to the settings xml
             {
                 //Debug.LogLine(string.Format("checking {0} for repairs", newFpkEntry.FilePath));
-                ulong packHash = Tools.NameToHash(newFpkEntry.FpkFile);
+                string cleanFpkPath = newFpkEntry.FpkFile;
+                if (cleanFpkPath.StartsWith("/00/") || cleanFpkPath.StartsWith("/01/") || cleanFpkPath.StartsWith("/02/") ||
+                    cleanFpkPath.StartsWith("\\00\\") || cleanFpkPath.StartsWith("\\01\\") || cleanFpkPath.StartsWith("\\02\\"))
+                {
+                    cleanFpkPath = cleanFpkPath.Substring(4);
+                }
+                else if (cleanFpkPath.StartsWith("/data_00/") || cleanFpkPath.StartsWith("/data_01/") || cleanFpkPath.StartsWith("/data_02/") ||
+                         cleanFpkPath.StartsWith("\\data_00\\") || cleanFpkPath.StartsWith("\\data_01\\") || cleanFpkPath.StartsWith("\\data_02\\"))
+                {
+                    cleanFpkPath = cleanFpkPath.Substring(9);
+                }
+
+                ulong packHash = Tools.NameToHash(cleanFpkPath);
                 if (mergeFpkHashes.Contains(packHash)) continue; // the process has already plucked this particular qar file
 
                 foreach (var archiveQarGameFiles in allQarGameFiles) // check every archive (except 00) to see if the particular qar file already exists
@@ -665,8 +677,8 @@ namespace SnakeBite
                             PullFromVanillas.Add(newFpkEntry.FpkFile);
 
                             string windowsFilePath = Tools.ToWinPath(newFpkEntry.FpkFile); // Extract the pack file from the vanilla game files, place into _gamefpk for future use
-                            string sourceArchive = Path.Combine(GamePaths.GameDir, "master\\" + existingPack.QarFile);
-                            string workingPath = Path.Combine("_gameFpk", windowsFilePath);
+                            string sourceArchive = Path.Combine(GamePaths.GameDir, existingPack.QarFile);
+                            string workingPath = Path.Combine("_gameFpk", windowsFilePath.TrimStart('\\'));
                             if (!Directory.Exists(Path.GetDirectoryName(workingPath))) Directory.CreateDirectory(Path.GetDirectoryName(workingPath));
 
                             GzsLib.ExtractFileByHash<QarFile>(sourceArchive, existingPack.FileHash, workingPath); // extracts the specific .fpk from the game data
