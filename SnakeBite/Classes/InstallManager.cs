@@ -681,7 +681,7 @@ namespace SnakeBite
                             string workingPath = Path.Combine("_gameFpk", windowsFilePath.TrimStart('\\'));
                             if (!Directory.Exists(Path.GetDirectoryName(workingPath))) Directory.CreateDirectory(Path.GetDirectoryName(workingPath));
 
-                            GzsLib.ExtractFileByHash<QarFile>(sourceArchive, existingPack.FileHash, workingPath); // extracts the specific .fpk from the game data
+                            GzsLib.ExtractFile<QarFile>(sourceArchive, existingPack.FilePath, workingPath);
                             foreach (string listedFile in GzsLib.ListArchiveContents<FpkFile>(workingPath))
                             {
                                 repairFpkEntries.Add(new ModFpkEntry {
