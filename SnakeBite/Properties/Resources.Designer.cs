@@ -113,9 +113,9 @@ namespace SnakeBite.Properties {
         /// <summary>
         ///   Looks up a localized resource of type System.Drawing.Icon similar to (Icon).
         /// </summary>
-        public static System.Drawing.Icon phantompain_icon_128 {
+        public static System.Drawing.Icon groundzeroes_icon_128 {
             get {
-                object obj = ResourceManager.GetObject("phantompain_icon_128", resourceCulture);
+                object obj = ResourceManager.GetObject("groundzeroes_icon_128", resourceCulture);
                 return ((System.Drawing.Icon)(obj));
             }
         }

@@ -90,7 +90,7 @@
             this.checkBoxSaveRevertPreset.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
             this.checkBoxSaveRevertPreset.Size = new System.Drawing.Size(259, 19);
             this.checkBoxSaveRevertPreset.TabIndex = 11;
-            this.checkBoxSaveRevertPreset.Text = "Save RevertChanges.MGSVPreset";
+            this.checkBoxSaveRevertPreset.Text = "Save RevertChanges.GZPreset";
             this.checkBoxSaveRevertPreset.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.checkBoxSaveRevertPreset.UseVisualStyleBackColor = true;
             this.checkBoxSaveRevertPreset.CheckedChanged += new System.EventHandler(this.checkBoxSaveRevertPreset_CheckedChanged);
@@ -211,7 +211,7 @@
             this.groupMGSVDir.Size = new System.Drawing.Size(360, 52);
             this.groupMGSVDir.TabIndex = 0;
             this.groupMGSVDir.TabStop = false;
-            this.groupMGSVDir.Text = "MGSV Installation";
+            this.groupMGSVDir.Text = "Ground Zeroes Installation";
             // 
             // buttonFindMGSV
             // 
@@ -221,7 +221,7 @@
             this.buttonFindMGSV.TabIndex = 2;
             this.buttonFindMGSV.Text = "...";
             this.buttonFindMGSV.UseVisualStyleBackColor = true;
-            this.buttonFindMGSV.Click += new System.EventHandler(this.buttonFindMGSV_Click);
+            this.buttonFindMGSV.Click += new System.EventHandler(this.buttonFindMGSVGZ_Click);
             // 
             // textInstallPath
             // 
@@ -249,7 +249,7 @@
             this.labelNexusLink.Size = new System.Drawing.Size(351, 16);
             this.labelNexusLink.TabIndex = 1;
             this.labelNexusLink.TabStop = true;
-            this.labelNexusLink.Text = "www.nexusmods.com/metalgearsolidvtpp/mods/106";
+            this.labelNexusLink.Text = "www.nexusmods.com/games/metalgearsolidvgz";
             this.labelNexusLink.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             this.labelNexusLink.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkNexusLink_LinkClicked);
             // 

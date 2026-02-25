@@ -122,9 +122,9 @@
 
 Due to the large amount of data this process will take a long time. However, it will not need to be repeated unless the game is updated or SnakeBite is reset.
 
-This procedure will affect any mods you have already installed in 00.dat/01.dat. SnakeBite will not recognize any conflicts, and any mods installed with SnakeBite may overwrite part (or all) of the files for your mod, leading to inconsistencies.
+This procedure will affect any mods you have already installed. SnakeBite will not recognize any conflicts, and any mods installed with SnakeBite may overwrite part (or all) of the files for your mod, leading to inconsistencies.
 
-It is strongly recommended that you do not modify 00.dat/01.dat after installing SnakeBite.
+It is strongly recommended that you do not modify the .g0s files after installing SnakeBite.
 </value>
   </data>
 </root>

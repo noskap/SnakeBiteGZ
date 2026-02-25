@@ -1,4 +1,4 @@
-## Ignore SnakeBite Release Files
+## Ignore SnakeBite GZ Release Files
 /*.zip
 /*.ps1
 /ReleaseBase/
@@ -235,3 +235,11 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+*.g0s
+SnakeBite/data_00.dat
+SnakeBite/data_02.dat
+SnakeBite/data_01
+SnakeBite/data_02
+SnakeBite/data_00.g0s.xml
+SnakeBite/data_01.g0s.xml
+SnakeBite/data_02.g0s.xml

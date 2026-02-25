@@ -14,12 +14,18 @@ namespace SnakeBite.SetupWizard
                 textInstallPath.Text = Properties.Settings.Default.InstallPath;
         }
 
+        public string InstallPath
+        {
+            get { return textInstallPath.Text; }
+            set { textInstallPath.Text = value; }
+        }
+
         private void buttonValidate_Click(object sender, EventArgs e)
         {
             //var doValidate = MessageBox.Show("SnakeBite will close the Steam validation window automatically when ready, please do not cancel or close the Steam window.", "SnakeBite", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
             var doValidate = MessageBox.Show("Please wait until the Steam validation window says it's complete.", "SnakeBite", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
             if (doValidate == DialogResult.Cancel) return;
-            System.Diagnostics.Process.Start("steam://validate/287700/");
+            System.Diagnostics.Process.Start("steam://validate/311340/");
             //tex times out too early, just waiting for a period isn't robust.
             /*
             BackgroundWorker bw = new BackgroundWorker();
@@ -65,20 +71,19 @@ namespace SnakeBite.SetupWizard
             };
             bw.RunWorkerAsync();
             */        
-            BackupManager.DeleteOriginals();
+            // Steam validation for GZ
+            System.Diagnostics.Process.Start("steam://validate/311340/");
         }
 
         private void buttonBrowse_Click(object sender, EventArgs e)
         {
             OpenFileDialog findMGSV = new OpenFileDialog();
-            findMGSV.Filter = "Metal Gear Solid V|MGSVTPP.exe";
-            DialogResult findResult = findMGSV.ShowDialog();
-            if (findResult != DialogResult.OK) return;
-
-            string fileDir = Path.GetDirectoryName(findMGSV.FileName);
-            textInstallPath.Text = fileDir;
-            Properties.Settings.Default.InstallPath = fileDir;
-            Properties.Settings.Default.Save();
+            findMGSV.FileName = "MgsGroundZeroes.exe";
+            findMGSV.Filter = "Metal Gear Solid V: Ground Zeroes|MgsGroundZeroes.exe";
+            if (findMGSV.ShowDialog() == DialogResult.OK)
+            {
+                textInstallPath.Text = Path.GetDirectoryName(findMGSV.FileName);
+            }
         }
     }
 }

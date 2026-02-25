@@ -100,7 +100,7 @@
             this.labelForVersion.Name = "labelForVersion";
             this.labelForVersion.Size = new System.Drawing.Size(81, 15);
             this.labelForVersion.TabIndex = 7;
-            this.labelForVersion.Text = "MGSV Version";
+            this.labelForVersion.Text = "MGSVGZ Version";
             // 
             // buttonMetaLoad
             // 
@@ -268,8 +268,7 @@
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(595, 15);
             this.label1.TabIndex = 10;
-            this.label1.Text = "Note: MakeBite will automatically repack any _fpk and _fpkd folders, overwriting " +
-    "the existing .fpk and .fpkd files.";
+            this.label1.Text = "";
             // 
             // listModFiles
             // 

@@ -32,22 +32,6 @@ namespace makebite
 
         private void PopulateBoxes(string modPath)
         {
-            // unpack existing fpks if extracted folders don't exist
-            foreach (string fpkFile in Directory.GetFiles(modPath, "*.fpk*", SearchOption.AllDirectories))
-            {
-                //tex chunk0\Assets\tpp\pack\collectible\common\col_common_tpp_fpk\Assets\tpp\pack\resident\resident00.fpkl is the only fpkl, don't know what a fpkl is, but gzcore crashes on it. also checks for xml in case user opened the fpk with gzstool and produced a xml file
-                if (fpkFile.EndsWith(".fpkl") || fpkFile.EndsWith(".xml")) {
-                    continue;
-                }
-
-                string fpkDir = Path.Combine(Path.GetDirectoryName(fpkFile), Path.GetFileName(fpkFile).Replace(".", "_"));
-                if (!Directory.Exists(fpkDir))
-                {
-                    //extract fpk
-                    GzsLib.ExtractArchive<FpkFile>(fpkFile, fpkDir);
-                }
-            }
-
             foreach (string modFile in Directory.GetFiles(modPath, "*.*", SearchOption.AllDirectories))
             {
                 string filePath = modFile.Substring(modPath.Length).Replace("\\", "/");
@@ -96,7 +80,7 @@ namespace makebite
         private void buttonBuild_Click(object sender, EventArgs e)
         {
             SaveFileDialog saveMod = new SaveFileDialog();
-            saveMod.Filter = "MGSV Mod File|*.mgsv";
+            saveMod.Filter = "MGSV GZ Mod File|*.mgsvgz";
             DialogResult saveResult = saveMod.ShowDialog();
             if (saveResult != DialogResult.OK) return;
 
@@ -184,9 +168,9 @@ namespace makebite
                     //tex better, but will be a breaking change for any authors used to the current output path\filename
                     //string folderName = Path.GetFileName(modPath.TrimEnd(Path.DirectorySeparatorChar));
                     //string parentPath = Directory.GetParent(modPath).ToString();
-                    //DoBuild($"{parentPath}\\{folderName}.mgsv");
+                    //DoBuild(String.Format("{0}\\{1}.mgsv", parentPath, folderName));
 
-                    DoBuild(Path.Combine(modPath, "mod.mgsv"));
+                    DoBuild(Path.Combine(modPath, "mod.mgsvgz"));
                     Application.Exit();    // build and exit
                 }
             }

@@ -85,7 +85,7 @@ namespace SnakeBite
             OpenFileDialog openModFile = new OpenFileDialog();
             List<string> ModNames = new List<string>();
 
-            openModFile.Filter = "MGSV Mod Files|*.mgsv|All Files|*.*";
+            openModFile.Filter = "SnakeBite GZ Mod Files|*.mgsvgz|All Files|*.*";
             openModFile.Multiselect = true;
             DialogResult ofdResult = openModFile.ShowDialog();
             if (ofdResult != DialogResult.OK) return;
@@ -152,26 +152,26 @@ namespace SnakeBite
             List<string> InstallFileList = new List<string>();
 
             foreach (string installModPath in installPaths) {
-                if (File.Exists(installModPath) && installModPath.Contains(".mgsv")) {
+                if (File.Exists(installModPath) && installModPath.Contains(".mgsvgz")) {
                     InstallFileList.Add(installModPath);
                 } else {
                     if (Directory.Exists(installModPath)) {
-                        var folderFiles = Directory.GetFiles(installModPath, "*.mgsv");
+                        var folderFiles = Directory.GetFiles(installModPath, "*.mgsvgz");
                         foreach (string mgsv in folderFiles) {
                             InstallFileList.Add(mgsv);
                         }
                         if (InstallFileList.Count == 0) {
-                            Debug.LogLine($"[Install] Could not find any .mgsv files in {installModPath}.", Debug.LogLevel.Basic);
+                            Debug.LogLine(String.Format("[Install] Could not find any .mgsvgz files in {0}.", installModPath), Debug.LogLevel.Basic);
                         }
                         InstallFileList.Sort();
                     } else {
-                        Debug.LogLine($"[Install] Could not find file or directory {installModPath}.", Debug.LogLevel.Basic);
+                        Debug.LogLine(String.Format("[Install] Could not find file or directory {0}.", installModPath), Debug.LogLevel.Basic);
                     }
                 }
             }
             if (InstallFileList.Count == 0)
             {
-                Debug.LogLine($"[Install] Could not find any .mgsv files in installPaths.", Debug.LogLevel.Basic);
+                Debug.LogLine("[Install] Could not find any .mgsvgz files in installPaths.", Debug.LogLevel.Basic);
                 return;
             }
             if (!skipConflictChecks)
@@ -183,9 +183,9 @@ namespace SnakeBite
             }
             string displayPath = InstallFileList[0];
             if (InstallFileList.Count > 1) {
-                displayPath = $"{displayPath} and {InstallFileList.Count} mods";
+                displayPath = String.Format("{0} and {1} mods", displayPath, InstallFileList.Count);
             }
-            ProgressWindow.Show("Installing Mod", $"Installing {displayPath}...",
+            ProgressWindow.Show("Installing Mod", String.Format("Installing {0}...", displayPath),
                 new Action((MethodInvoker)delegate { InstallManager.InstallMods(InstallFileList, skipCleanup); }
             ), log);
             this.Invoke((MethodInvoker)delegate { RefreshInstalledMods(); });
@@ -254,19 +254,19 @@ namespace SnakeBite
                     Debug.LogLine("Launching game...", Debug.LogLevel.Basic);
                     try
                     {
-                        Process.Start(GamePaths.GameDir + "\\mgsvtpp.exe");
+                        Process.Start(GamePaths.GameDir + "\\MgsGroundZeroes.exe");
                         if (Properties.Settings.Default.CloseSnakeBiteOnLaunch)
                             Application.Exit();
                     }
                     catch
                     {
-                        Debug.LogLine("Failed to run mgsvtpp.exe", Debug.LogLevel.Basic);
+                        Debug.LogLine("Failed to run MgsGroundZeroes.exe", Debug.LogLevel.Basic);
                     }
 
                 }
                 else
                 {
-                    MessageBox.Show("Unable to locate mgsvtpp.exe. Please check the MGSV install path and try again.", "Error launching MGSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Unable to locate MgsGroundZeroes.exe. Please check the MGSV install path and try again.", "Error launching Ground Zeroes", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
@@ -280,7 +280,7 @@ namespace SnakeBite
         private void SavePreset()
         {
             SaveFileDialog savePreset = new SaveFileDialog();
-            savePreset.Filter = "MGSV Preset File|*.MGSVPreset";
+            savePreset.Filter = "GZ Preset File|*.GZPreset";
             DialogResult saveResult = savePreset.ShowDialog();
             if (saveResult != DialogResult.OK) return;
 
@@ -302,7 +302,7 @@ namespace SnakeBite
             else if (saveModsResult == DialogResult.Cancel) return;
             */
             OpenFileDialog getPresetFile = new OpenFileDialog();
-            getPresetFile.Filter = "MGSV Preset File|*.MGSVPreset|All Files|*.*";
+            getPresetFile.Filter = "SnakeBite GZ Preset Files (*.GZPreset)|*.GZPreset|All Files|*.*";
             getPresetFile.Multiselect = true;
 
             DialogResult getPresetResult = getPresetFile.ShowDialog();
@@ -413,7 +413,7 @@ namespace SnakeBite
 
         private void menuItemOpenMakeBite_Click(object sender, EventArgs e)
         {
-            string makeBitePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "makebite.exe");
+            string makeBitePath = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location), "MakeBiteGZ.exe");
 
             try
             {
