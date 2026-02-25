@@ -462,7 +462,7 @@ namespace SnakeBite
                     Directory.Delete(tempModBuildDir, true);
 
                     // Combine lists (Union handles duplicates)
-                    pulledPack = pulledPack.Union(extrPack).ToList();
+                    pulledPack = pulledPack.Union(extrPack, StringComparer.OrdinalIgnoreCase).ToList();
                     
                     GzsLib.WriteFpkArchive(workingDestination, "_build", pulledPack, fpkReferences);
                     

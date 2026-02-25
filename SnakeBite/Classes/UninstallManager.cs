@@ -279,8 +279,8 @@ namespace SnakeBite
                 // split the fpk paths for this Qar into two categories:
                 List<string> repairFilePathList = new List<string>(); // files that need to be repaired (aka overwritten by a vanilla file)
                 if (partialEditQarEntry.SourceName != null)
-                    repairFilePathList = GzsLib.ListArchiveContents<FpkFile>(gameQarPath).Intersect(fpkPathsForThisQar).ToList();
-                List<string> removeFilePathList = fpkPathsForThisQar.Except(repairFilePathList).ToList(); // files that need to be removed (i.e. files that were non-native to the vanilla Qar)
+                    repairFilePathList = GzsLib.ListArchiveContents<FpkFile>(gameQarPath).Intersect(fpkPathsForThisQar, StringComparer.OrdinalIgnoreCase).ToList();
+                List<string> removeFilePathList = fpkPathsForThisQar.Except(repairFilePathList, StringComparer.OrdinalIgnoreCase).ToList(); // files that need to be removed (i.e. files that were non-native to the vanilla Qar)
 
                 foreach (string repairFilePath in repairFilePathList)
                 {
@@ -298,7 +298,7 @@ namespace SnakeBite
                     addedRepairFpkEntries.Add(repairEntry);
                 }
 
-                var buildFiles = moddedFpkFiles.Except(removeFilePathList).ToList();
+                var buildFiles = moddedFpkFiles.Except(removeFilePathList, StringComparer.OrdinalIgnoreCase).ToList();
                 //tex refs werent grabbed from vanilla (or there weren't any in there in that case we're probably doubling the work lol)
                 if (fpkReferences.Count == 0) {
                     fpkReferences = GzsLib.GetFpkReferences(workingZeroQarPath);
