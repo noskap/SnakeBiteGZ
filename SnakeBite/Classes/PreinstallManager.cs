@@ -179,7 +179,7 @@ namespace SnakeBite
                 // Check if mod requires SB update
                 if (modSBVersion > SBVersion)
                 {
-                    if (DialogResult.Yes != MessageBox.Show($"'{metaData.Name}' was created with SnakeBite {metaData.SBVersion.AsString()} and may not be compatible with {SBVersion}.\n\nContinue?", "Update required", MessageBoxButtons.YesNo, MessageBoxIcon.Warning))
+                    if (DialogResult.Yes != MessageBox.Show(String.Format("'{0}' was created with SnakeBite {1} and may not be compatible with {2}.\n\nContinue?", metaData.Name, metaData.SBVersion.AsString(), SBVersion), "Update required", MessageBoxButtons.YesNo, MessageBoxIcon.Warning))
                     {
                         ModFiles.RemoveAt(i);
                     }
@@ -292,7 +292,7 @@ namespace SnakeBite
                 if (sysConflict)
                 {
                     //tex TODO: figure out what it's actually checking and how this can be corrupted
-                    string msgboxtext = String.Format("\"{0}\" conflicts with existing MGSV system files,\n", Tools.ReadMetaData(ModFiles[i]).Name);
+                    string msgboxtext = String.Format("\"{0}\" conflicts with existing Ground Zeroes system files,\n", Tools.ReadMetaData(ModFiles[i]).Name);
                     msgboxtext += "or the snakebite.xml base entries has become corrupt.\n";
                     msgboxtext += "Please use the 'Restore Backup Game Files' option in Snakebite settings and re-run snakebite\n";
                     DialogResult userInput = conflictForm.ShowDialog(msgboxtext);
@@ -346,12 +346,12 @@ namespace SnakeBite
             {
                 if (MGSVersion > modMGSVersion)
                 {
-                    var contInstall = MessageBox.Show(String.Format("{0} appears to be for an older version of MGSV. It is recommended that you check for an updated version before installing.\n\nContinue installation?", metaData.Name), "Game version mismatch", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+                    var contInstall = MessageBox.Show(String.Format("{0} appears to be for an older version of Ground Zeroes. It is recommended that you check for an updated version before installing.\n\nContinue installation?", metaData.Name), "Game version mismatch", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
                     if (contInstall == DialogResult.No) return false;
                 }
                 if (MGSVersion < modMGSVersion)
                 {
-                    MessageBox.Show(String.Format("{0} requires MGSV version {1}, but your installation is version {2}. Please update MGSV and try again.", metaData.Name, modMGSVersion, MGSVersion), "Update required", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(String.Format("{0} requires Ground Zeroes version {1}, but your installation is version {2}. Please update Ground Zeroes and try again.", metaData.Name, modMGSVersion, MGSVersion), "Update required", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return false;
                 }
             }
@@ -437,7 +437,7 @@ namespace SnakeBite
             if (sysConflict)
             {
                 //tex TODO: figure out what it's actually checking and how this can be corrupted
-                string msgboxtext = "The selected mod conflicts with existing MGSV system files,\n";
+                string msgboxtext = "The selected mod conflicts with existing Ground Zeroes system files,\n";
                 msgboxtext += "or the snakebite.xml base entries has become corrupt.\n";
                 msgboxtext += "Please use the 'Restore Backup Game Files' option in Snakebite settings and re-run snakebite\n";
                 MessageBox.Show(msgboxtext, "SnakeBite", MessageBoxButtons.OK, MessageBoxIcon.Error);

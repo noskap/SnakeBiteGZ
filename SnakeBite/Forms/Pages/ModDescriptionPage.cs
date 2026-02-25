@@ -61,17 +61,17 @@ namespace SnakeBite.ModPages
                 {
                     if (currentMGSVersion > modMGSVersion && modMGSVersion > new Version(0, 0, 0, 0))
                     {
-                        MessageBox.Show(String.Format("This mod appears to be for MGSV Version {0}, but it may be compatible with {1} regardless.\n\nIt is recommended that you check for an updated version before installing.", modMGSVersion, currentMGSVersion), "Game version mismatch", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show(String.Format("This mod appears to be for GZ Version {0}, but it may be compatible with {1} regardless.\n\nIt is recommended that you check for an updated version before installing.", modMGSVersion, currentMGSVersion), "Game version mismatch", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                     if (currentMGSVersion < modMGSVersion)
                     {
-                        MessageBox.Show(String.Format("This mod is intended for MGSV version {0}, but your MGSV installation is version {1}.\n\nThis mod may not be compatible with your MGSV version. Is your game up to date?", modMGSVersion, currentMGSVersion), "Update recommended", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        MessageBox.Show(String.Format("This mod is intended for GZ version {0}, but your GZ installation is version {1}.\n\nThis mod may not be compatible with your GZ version. Is your game up to date?", modMGSVersion, currentMGSVersion), "Update recommended", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
 
                 }
                 else
                 {
-                    MessageBox.Show(String.Format("This mod is up to date with MGSV version {0}", currentMGSVersion), "Mod is up to date", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(String.Format("This mod is up to date with GZ version {0}", currentMGSVersion), "Mod is up to date", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
 
             }

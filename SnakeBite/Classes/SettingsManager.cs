@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Serialization;
-using static SnakeBite.GamePaths;
+
 
 namespace SnakeBite
 {
@@ -234,35 +234,31 @@ namespace SnakeBite
             return settings.MGSVersion.AsVersion();
         }
 
-        public void UpdateDatHash()
+        public void UpdateG0sHash()
         {
             Settings settings = new Settings();
             settings.LoadFrom(xmlFilePath);
              
-            // Hash 01.dat and update settings file
-            string datHash = Tools.GetMd5Hash(ZeroPath) + Tools.GetMd5Hash(OnePath);
-            settings.GameData.DatHash = datHash;
-            Debug.LogLine(String.Format("[UpdateDatHash] Updated 00/01 dat hash to: {0}", datHash), Debug.LogLevel.All);
+            // Hash data_01.g0s and update settings file (data_00 ignored)
+            string g0sHash = Tools.GetMd5Hash(GamePaths.OnePath);
+            settings.GameData.G0sHash = g0sHash;
+            Debug.LogLine(String.Format("[UpdateG0sHash] Updated data_01.g0s hash to: {0}", g0sHash), Debug.LogLevel.All);
             settings.SaveTo(xmlFilePath);
         }
 
-        public bool IsVanilla0001DatHash() //shouldn't be in settingsmanager
+        public bool IsVanillaG0sHash()
         {
-            return vanillaDatHash.Equals(Tools.GetMd5Hash(ZeroPath) + Tools.GetMd5Hash(OnePath));
+            // GZ: data_00 ignored.
+            // TODO need to get hashes at some point
+            // return Tools.CalculateDatHash(GamePaths.OnePath) == vanillaDatHash;
+            return true;
         }
 
-        public bool IsVanilla0001Size() //shouldn't be in settingsmanager
+        public bool IsVanillaG0sSize()
         {
-            var zeroSize = new System.IO.FileInfo(ZeroPath).Length;
-            var oneSize = new System.IO.FileInfo(OnePath).Length;
-            if (MINZEROSIZE < zeroSize && zeroSize < MAXZEROSIZE)
-            {
-                if (MINONESIZE < oneSize && oneSize < MAXONESIZE)
-                {
-                    return true;
-                }
-            }
-            return false;
+            // GZ: data_00 ignored.
+            long oneSize = new FileInfo(GamePaths.OnePath).Length;
+            return (oneSize >= MINONESIZE && oneSize <= MAXONESIZE);
         }
 
         public bool IsUpToDate(Version ModVersion) //shouldn't be in settingsmanager
@@ -280,23 +276,24 @@ namespace SnakeBite
             settings.SaveTo(xmlFilePath);
         }
 
-        internal bool ValidateDatHash()
+        internal bool ValidateG0sHash()
         {
             if (File.Exists(xmlFilePath)) {
-                string datHash = Tools.GetMd5Hash(ZeroPath) + Tools.GetMd5Hash(OnePath);
-                string hashOld = GetGameData().DatHash;
-                if (datHash == hashOld)
+                // GZ: Only hash data_01
+                string g0sHash = Tools.GetMd5Hash(GamePaths.OnePath);
+                string hashOld = GetGameData().G0sHash;
+                if (g0sHash == hashOld)
                 {
-                    Debug.LogLine(String.Format("[ValidateDatHash] 00/01 dat hash match:\n{0} (Found Hash) == {1} (Expected Hash)", datHash, hashOld), Debug.LogLevel.All);
+                    Debug.LogLine(String.Format("[ValidateG0sHash] data_01.g0s hash match:\n{0} (Found Hash) == {1} (Expected Hash)", g0sHash, hashOld), Debug.LogLevel.All);
                     return true;
                 }
                 else
                 {
-                    Debug.LogLine(String.Format("[ValidateDatHash] 00/01 dat hash mismatch:\n{0} (Found Hash) != {1} (Expected Hash)", datHash, hashOld), Debug.LogLevel.All);
+                    Debug.LogLine(String.Format("[ValidateG0sHash] data_01.g0s hash mismatch:\n{0} (Found Hash) != {1} (Expected Hash)", g0sHash, hashOld), Debug.LogLevel.All);
                     return false;
                 }
             }
-            Debug.LogLine(String.Format("[ValidateDatHash] could not find snakebite.xml"), Debug.LogLevel.All);
+            Debug.LogLine(String.Format("[ValidateG0sHash] could not find snakebite.xml"), Debug.LogLevel.All);
             return false;
         }
 
@@ -308,7 +305,7 @@ namespace SnakeBite
                 string installPath = Properties.Settings.Default.InstallPath;
                 if (Directory.Exists(installPath))
                 {
-                    if (File.Exists(String.Format("{0}\\MGSVTPP.exe", installPath)))
+                    if (File.Exists(String.Format("{0}\\MgsGroundZeroes.exe", installPath)))
                     {
                         return true;
                     }
@@ -321,17 +318,25 @@ namespace SnakeBite
     [XmlType("Settings")]
     public class Settings
     {
+        public Settings()
+        {
+            SbVersion = new SerialVersion();
+            MGSVersion = new SerialVersion();
+            GameData = new GameData();
+            ModEntries = new List<ModEntry>();
+        }
+
         [XmlElement("SbVersion")]
-        public SerialVersion SbVersion { get; set; } = new SerialVersion();
+        public SerialVersion SbVersion { get; set; }
 
         [XmlElement("MGSVersion")]
-        public SerialVersion MGSVersion { get; set; } = new SerialVersion();
+        public SerialVersion MGSVersion { get; set; }
 
         [XmlElement("GameData")]
-        public GameData GameData { get; set; } = new GameData();
+        public GameData GameData { get; set; }
 
         [XmlArray("Mods")]
-        public List<ModEntry> ModEntries { get; set; } = new List<ModEntry>();
+        public List<ModEntry> ModEntries { get; set; }
 
         public void SaveTo(string xmlFilePath)
         {
@@ -385,20 +390,20 @@ namespace SnakeBite
             GameFileEntries = new List<ModFileEntry>();
         }
 
-        [XmlAttribute("DatHash")]
-        public string DatHash { get; set; }
+        [XmlAttribute("G0sHash")]
+        public string G0sHash { get; set; }
 
         //Entries of files in mod qar (ex 00,01.dat)
         [XmlArray("QarEntries")]
-        public List<ModQarEntry> GameQarEntries { get; set; } = new List<ModQarEntry>();
+        public List<ModQarEntry> GameQarEntries { get; set; }
 
         //Entries of files inside fpks
         [XmlArray("FpkEntries")]
-        public List<ModFpkEntry> GameFpkEntries { get; set; } = new List<ModFpkEntry>();
+        public List<ModFpkEntry> GameFpkEntries { get; set; }
 
         //Entries of files in GameDir (ex MGS_TPP)
         [XmlArray("FileEntries")]
-        public List<ModFileEntry> GameFileEntries { get; set; } = new List<ModFileEntry>();
+        public List<ModFileEntry> GameFileEntries { get; set; }
     }
 
     [XmlType("ModEntry")]
@@ -406,45 +411,56 @@ namespace SnakeBite
     {
         public ModEntry()
         {
+            Name = string.Empty;
+            Version = string.Empty;
+            MGSVersion = new SerialVersion();
+            SBVersion = new SerialVersion();
+            Author = string.Empty;
+            Website = string.Empty;
+            Description = string.Empty;
+            ModQarEntries = new List<ModQarEntry>();
+            ModFpkEntries = new List<ModFpkEntry>();
+            ModFileEntries = new List<ModFileEntry>();
+            ModWmvEntries = new List<ModWmvEntry>();
         }
 
-        public ModEntry(string SourceFile)
+        public ModEntry(string SourceFile) : this()
         {
             ReadFromFile(SourceFile);
         }
 
         [XmlAttribute("Name")]
-        public string Name { get; set; } = string.Empty;
+        public string Name { get; set; }
 
         [XmlAttribute("Version")]
-        public string Version { get; set; } = string.Empty;
+        public string Version { get; set; }
 
         [XmlElement("MGSVersion")]
-        public SerialVersion MGSVersion { get; set; } = new SerialVersion();
+        public SerialVersion MGSVersion { get; set; }
 
         [XmlElement("SBVersion")]
-        public SerialVersion SBVersion { get; set; } = new SerialVersion();
+        public SerialVersion SBVersion { get; set; }
 
         [XmlAttribute("Author")]
-        public string Author { get; set; } = string.Empty;
+        public string Author { get; set; }
 
         [XmlAttribute("Website")]
-        public string Website { get; set; } = string.Empty;
+        public string Website { get; set; }
 
         [XmlElement("Description")]
-        public string Description { get; set; } = string.Empty;
+        public string Description { get; set; }
 
         [XmlArray("QarEntries")]
-        public List<ModQarEntry> ModQarEntries { get; set; } = new List<ModQarEntry>();
+        public List<ModQarEntry> ModQarEntries { get; set; }
 
         [XmlArray("FpkEntries")]
-        public List<ModFpkEntry> ModFpkEntries { get; set; } = new List<ModFpkEntry>();
+        public List<ModFpkEntry> ModFpkEntries { get; set; }
 
         [XmlArray("FileEntries")]
-        public List<ModFileEntry> ModFileEntries { get; set; } = new List<ModFileEntry>();
+        public List<ModFileEntry> ModFileEntries { get; set; }
 
         [XmlArray("WmvEntries")]
-        public List<ModWmvEntry> ModWmvEntries { get; set; } = new List<ModWmvEntry>();
+        public List<ModWmvEntry> ModWmvEntries { get; set; }
 
         public void ReadFromFile(string Filename)
         {

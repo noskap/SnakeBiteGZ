@@ -55,18 +55,18 @@ namespace SnakeBite.QuickMod
                     break;
                 case 2:
                     if (wp.textZipFile.Text.Trim() == string.Empty) return;
-                    var exportFileName = cm.textModName.Text + ".mgsv";
+                    var exportFileName = cm.textModName.Text + ".mgsvgz";
                     if(cm.checkExport.Checked )
                     {
                         SaveFileDialog sfd = new SaveFileDialog();
-                        sfd.Filter = "MGSV Mod File|*.mgsv";
+                        sfd.Filter = "MGSV GZ Mod File|*.mgsvgz";
                         sfd.FileName = exportFileName;
                         if(sfd.ShowDialog() == DialogResult.OK)
                         {
                             exportFileName = sfd.FileName;
                         } else
                         {
-                            exportFileName = "temp.mgsv";
+                            exportFileName = "temp.mgsvgz";
                         }
                     }
                     if (Directory.Exists("_temp")) Directory.Delete("_temp", true);

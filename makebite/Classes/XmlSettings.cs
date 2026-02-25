@@ -8,10 +8,16 @@ namespace SnakeBite
     public class Settings
     {
         [XmlElement("GameData")]
-        public GameData GameData { get; set; } = new GameData();
+        public GameData GameData { get; set; }
 
         [XmlArray("Mods")]
-        public List<ModEntry> ModEntries { get; set; } = new List<ModEntry>();
+        public List<ModEntry> ModEntries { get; set; }
+
+        public Settings()
+        {
+            GameData = new GameData();
+            ModEntries = new List<ModEntry>();
+        }
     }
 
     [XmlType("GameData")]
@@ -27,10 +33,10 @@ namespace SnakeBite
         public string DatHash { get; set; }
 
         [XmlArray("QarEntries")]
-        public List<ModQarEntry> GameQarEntries { get; set; } = new List<ModQarEntry>();
+        public List<ModQarEntry> GameQarEntries { get; set; }
 
         [XmlArray("FpkEntries")]
-        public List<ModFpkEntry> GameFpkEntries { get; set; } = new List<ModFpkEntry>();
+        public List<ModFpkEntry> GameFpkEntries { get; set; }
     }
 
     [XmlType("ModEntry")]
@@ -43,10 +49,10 @@ namespace SnakeBite
         public string Version { get; set; }
 
         [XmlElement("MGSVersion")]
-        public SerialVersion MGSVersion { get; set; } = new SerialVersion();
+        public SerialVersion MGSVersion { get; set; }
 
         [XmlElement("SBVersion")]
-        public SerialVersion SBVersion { get; set; } = new SerialVersion();
+        public SerialVersion SBVersion { get; set; }
 
         [XmlAttribute("Author")]
         public string Author { get; set; }
@@ -58,16 +64,26 @@ namespace SnakeBite
         public string Description { get; set; }
 
         [XmlArray("QarEntries")]
-        public List<ModQarEntry> ModQarEntries { get; set; } = new List<ModQarEntry>();
+        public List<ModQarEntry> ModQarEntries { get; set; }
 
         [XmlArray("FpkEntries")]
-        public List<ModFpkEntry> ModFpkEntries { get; set; } = new List<ModFpkEntry>();
+        public List<ModFpkEntry> ModFpkEntries { get; set; }
 
         [XmlArray("FileEntries")]
-        public List<ModFileEntry> ModFileEntries { get; set; } = new List<ModFileEntry>();
+        public List<ModFileEntry> ModFileEntries { get; set; }
 
         [XmlArray("WmvEntries")]
-        public List<ModWmvEntry> ModWmvEntries { get; set; } = new List<ModWmvEntry>();
+        public List<ModWmvEntry> ModWmvEntries { get; set; }
+
+        public ModEntry()
+        {
+            MGSVersion = new SerialVersion();
+            SBVersion = new SerialVersion();
+            ModQarEntries = new List<ModQarEntry>();
+            ModFpkEntries = new List<ModFpkEntry>();
+            ModFileEntries = new List<ModFileEntry>();
+            ModWmvEntries = new List<ModWmvEntry>();
+        }
 
         public void ReadFromFile(string Filename)
         {

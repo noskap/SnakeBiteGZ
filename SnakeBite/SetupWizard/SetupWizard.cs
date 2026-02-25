@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Threading;
 using System.Windows.Forms;
-using static SnakeBite.GamePaths;
+using SnakeBite;
 
 namespace SnakeBite.SetupWizard
 {
@@ -15,7 +15,7 @@ namespace SnakeBite.SetupWizard
         private MergeDatPage mergeDatPage = new MergeDatPage();
         private int displayPage = 0;
         private bool setupComplete = false;
-        private SettingsManager manager = new SettingsManager(SnakeBiteSettings);
+        private SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
 
         public SetupWizard()
         {
@@ -56,7 +56,10 @@ namespace SnakeBite.SetupWizard
                     break;
 
                 case 1:
-                    manager = new SettingsManager(SnakeBiteSettings);
+                    Properties.Settings.Default.InstallPath = findInstallPage.InstallPath;
+                    Properties.Settings.Default.Save();
+
+                    manager = new SettingsManager(GamePaths.SnakeBiteSettings);
                     if (!manager.ValidInstallPath)
                     {
                         MessageBox.Show("Please select a valid installation directory.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -78,12 +81,12 @@ namespace SnakeBite.SetupWizard
                     break;
 
                 case 2:
-                    manager = new SettingsManager(SnakeBiteSettings);
-                    if (!(manager.IsVanilla0001Size() || manager.IsVanilla0001DatHash()) && (SettingsManager.IntendedGameVersion >= ModManager.GetMGSVersion())) // not the right 00/01 and there hasn't been a game update
+                    manager = new SettingsManager(GamePaths.SnakeBiteSettings);
+                    if (!(manager.IsVanillaG0sSize() || manager.IsVanillaG0sHash()) && (SettingsManager.IntendedGameVersion >= ModManager.GetMGSVersion())) // not the right 00/01 and there hasn't been a game update
                     {
                         var overWrite = MessageBox.Show(string.Format("Your existing game data contains unexpected filesizes, and is likely already modified or predates Game Version {0}." +
                             "\n\nIt is recommended that you do NOT store these files as backups, unless you are absolutely certain that they can reliably restore your game to a safe state!" +
-                            "\n\nAre you sure you want to save these as backup data?", SettingsManager.IntendedGameVersion), "Unexpected 00.dat / 01.dat Filesizes", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
+                            "\n\nAre you sure you want to save these as backup data?", SettingsManager.IntendedGameVersion), "Unexpected data_00.g0s / data_01.g0s Filesizes", MessageBoxButtons.YesNo, MessageBoxIcon.Information);
                         if (overWrite != DialogResult.Yes) return;
                     }
 
@@ -93,7 +96,7 @@ namespace SnakeBite.SetupWizard
                     {
                         if (SettingsManager.IntendedGameVersion < ModManager.GetMGSVersion()) //A recent update has occurred and the user should probably create new backups
                         {
-                            overWriteMessage = (string.Format("Some backup data already exists. Since this version of SnakeBite is intended for MGSV Version {0} and is now MGSV Version {1}, it is recommended that you overwrite your old backup files with new data.", SettingsManager.IntendedGameVersion, ModManager.GetMGSVersion()) +
+                            overWriteMessage = (string.Format("Some backup data already exists. Since this version of SnakeBite is intended for Ground Zeroes Version {0} and is now Ground Zeroes Version {1}, it is recommended that you overwrite your old backup files with new data.", SettingsManager.IntendedGameVersion, ModManager.GetMGSVersion()) +
                                 "\n\nContinue?");
                         }
                         else
@@ -126,61 +129,26 @@ namespace SnakeBite.SetupWizard
                         Thread.Sleep(10);
                     }
 
-                    // move to merge dats
+                    // GZ: Skip Merge Dat Page
+                    contentPanel.Controls.Clear();
+                    contentPanel.Controls.Add(mergeDatPage); // Reusing this page for "Done" state for now, or just to hold place
+                    
+                    setupComplete = true; // Mark as complete immediately
+                    
                     mergeDatPage.panelProcessing.Visible = false;
                     Application.UseWaitCursor = false;
 
-                    contentPanel.Controls.Clear();
-                    contentPanel.Controls.Add(mergeDatPage);
+                    mergeDatPage.labelWelcome.Text = "Setup complete";
+                    mergeDatPage.labelWelcomeText.Text = "SnakeBite is configured and ready to use.";
+
+                    buttonNext.Text = "Do&ne";
                     buttonNext.Enabled = true;
 
-                    displayPage = 3;
+                    displayPage = 4; // Go to "Done" state
                     break;
 
                 case 3:
-                    // move 00/01 to a_chunk/a_texture
-                    buttonNext.Enabled = false;
-                    buttonBack.Visible = false;
-                    Tag = "noclose";
-                    mergeDatPage.panelProcessing.Visible = true;
-                    Application.UseWaitCursor = true;
-
-                    BackgroundWorker mergeProcessor = new BackgroundWorker();
-                    mergeProcessor.WorkerSupportsCancellation = true;
-                    mergeProcessor.DoWork += new DoWorkEventHandler(ModManager.backgroundWorker_MergeAndCleanup);
-                    mergeProcessor.WorkerReportsProgress = true;
-                    mergeProcessor.ProgressChanged += new ProgressChangedEventHandler(mergeProcessor_ProgressChanged);
-                    mergeProcessor.RunWorkerCompleted += new RunWorkerCompletedEventHandler(mergeProcessor_Completed);
-                    mergeProcessor.RunWorkerAsync();
-
-                    while (mergeProcessor.IsBusy)
-                    {
-                        Application.DoEvents();
-                        Thread.Sleep(40);
-                    }
-                    
-                    if (setupComplete)
-                    {
-                        Debug.LogLine("[Setup Wizard] Setup Complete. Snakebite is configured and ready to use.");
-                        mergeDatPage.panelProcessing.Visible = false;
-                        Application.UseWaitCursor = false;
-
-                        mergeDatPage.labelWelcome.Text = "Setup complete";
-                        mergeDatPage.labelWelcomeText.Text = "SnakeBite is configured and ready to use.";
-
-                        buttonNext.Text = "Do&ne";
-                        buttonNext.Enabled = true;
-
-                        displayPage = 4;
-                    }
-                    else
-                    {
-                        Debug.LogLine("[Setup Wizard] Setup Incomplete.");
-                        Tag = null;
-                        GoToMergeDatPage();
-
-                        buttonNext.Text = "Retry";
-                    }
+                    // GZ: Skipped logic
                     break;
 
                 case 4:
@@ -199,20 +167,16 @@ namespace SnakeBite.SetupWizard
 
         private void buttonSkip_Click(object sender, EventArgs e)
         {
-            GoToMergeDatPage();
+             // GZ: Skip button logic adapted
+             displayPage = 2; // trick into processing as if backup finished
+             buttonNext_Click(null, null);
         }
 
         private void GoToMergeDatPage()
         {
-            buttonSkip.Visible = false;
-            mergeDatPage.panelProcessing.Visible = false;
-            Application.UseWaitCursor = false;
-
-            contentPanel.Controls.Clear();
-            contentPanel.Controls.Add(mergeDatPage);
-            buttonNext.Enabled = true;
-
-            displayPage = 3;
+             // GZ: This should probably not be called or should lead to Done
+             displayPage = 2;
+             buttonNext_Click(null, null); 
         }
 
         private void backupProcessor_ProgressChanged(object sender, ProgressChangedEventArgs e)

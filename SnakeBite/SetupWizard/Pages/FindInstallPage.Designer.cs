@@ -97,7 +97,7 @@
             this.labelSelectDir.Name = "labelSelectDir";
             this.labelSelectDir.Size = new System.Drawing.Size(313, 15);
             this.labelSelectDir.TabIndex = 5;
-            this.labelSelectDir.Text = "Please select your Metal Gear Solid V installation directory:";
+            this.labelSelectDir.Text = "Please select your Ground Zeroes installation directory:";
             // 
             // labelHeader
             // 
@@ -107,7 +107,7 @@
             this.labelHeader.Name = "labelHeader";
             this.labelHeader.Size = new System.Drawing.Size(245, 30);
             this.labelHeader.TabIndex = 4;
-            this.labelHeader.Text = "Find Metal Gear Solid V";
+            this.labelHeader.Text = "Find Ground Zeroes";
             // 
             // FindInstallPage
             // 

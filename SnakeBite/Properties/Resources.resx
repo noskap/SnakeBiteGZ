@@ -137,7 +137,7 @@
     <value>..\Resources\ui_move.wav;System.IO.MemoryStream, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="LAUNCHERBGv2" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\LAUNCHERBGv2.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+    <value>..\Resources\LAUNCHERBG.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="toggleoff" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\toggleoff.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -148,8 +148,8 @@
   <data name="exclmIcon" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\exclmIcon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="phantompain_icon_128" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\phantompain_icon_128.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="groundzeroes_icon_128" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\groundzeroes_icon_128.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="toggledisabled" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\toggledisabled.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>

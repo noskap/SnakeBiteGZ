@@ -8,7 +8,7 @@
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>makebite</RootNamespace>
-    <AssemblyName>makebite</AssemblyName>
+    <AssemblyName>MakeBiteGZ</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -152,6 +152,18 @@
     <Content Include="qar_dictionary.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="..\SnakeBite\GzsTool.exe">
+      <Link>GzsTool.exe</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SnakeBite\GzsTool.exe.config">
+      <Link>GzsTool.exe.config</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SnakeBite\gzs_dictionary.txt">
+      <Link>gzs_dictionary.txt</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5">
@@ -167,8 +179,8 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy /y "$(TargetDir)MakeBite.exe" "$(SolutionDir)installerbuild\"
-xcopy /y "$(TargetDir)MakeBite.exe.config" "$(SolutionDir)installerbuild\"
+    <PostBuildEvent>xcopy /y "$(TargetDir)MakeBiteGZ.exe" "$(SolutionDir)installerbuild\"
+xcopy /y "$(TargetDir)MakeBiteGZ.exe.config" "$(SolutionDir)installerbuild\"
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

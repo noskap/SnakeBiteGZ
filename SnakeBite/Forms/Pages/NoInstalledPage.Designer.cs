@@ -85,7 +85,7 @@
             this.labelNoModInstruction.Name = "labelNoModInstruction";
             this.labelNoModInstruction.Size = new System.Drawing.Size(394, 30);
             this.labelNoModInstruction.TabIndex = 0;
-            this.labelNoModInstruction.Text = "To install mods, click \"Install .MGSV File(s)\"";
+            this.labelNoModInstruction.Text = "To install mods, click \"Install Mod File(s)\"";
             this.labelNoModInstruction.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // NoInstalledPage

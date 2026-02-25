@@ -43,13 +43,13 @@ namespace SnakeBite
             textInfo = cultureInfo.TextInfo;
 
             // Retrieve and display version info
-            var MGSVersionInfo = FileVersionInfo.GetVersionInfo(Properties.Settings.Default.InstallPath + "\\mgsvtpp.exe");
+            var MGSVersionInfo = FileVersionInfo.GetVersionInfo(Properties.Settings.Default.InstallPath + "\\MgsGroundZeroes.exe");
 
             string SBVersion = Application.ProductVersion;
             string MGSVersion = MGSVersionInfo.ProductVersion;
 
             // Update version text
-            string VersionText = String.Format("MGSV {0} / SB {1}", MGSVersion, SBVersion);
+            string VersionText = String.Format("GZ {0} / SB {1} (SBGZ v{2})", MGSVersion, SBVersion, ModManager.GetSBGZVersion());
             labelVersion.Text = VersionText;
             UpdateVersionLabel();
 
@@ -103,7 +103,7 @@ namespace SnakeBite
                             exitColour = Color.FromArgb(theme.ExitColour.alpha, theme.ExitColour.red, theme.ExitColour.green, theme.ExitColour.blue);
                         }
                     }
-                    var bgEntry = themeFile.FindEntry("LAUNCHERBGv2.png", true);
+                    var bgEntry = themeFile.FindEntry("LAUNCHERBG.png", true);
                     if (bgEntry >= 0)
                     {
                         BackgroundImage = Image.FromStream(themeFile.GetInputStream(themeFile[bgEntry]));
@@ -206,13 +206,13 @@ namespace SnakeBite
             SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
             if (manager.ValidInstallPath)
             {
-                Process.Start(GamePaths.GameDir + "\\mgsvtpp.exe");
+                Process.Start(GamePaths.GameDir + "\\MgsGroundZeroes.exe");
                 if (Properties.Settings.Default.CloseSnakeBiteOnLaunch)
                     ExitLauncher(silent);
             }
             else
             {
-                MessageBox.Show("Unable to locate MGSVTPP.exe. Please check the Settings and try again.", "Error launching MGSV", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Unable to locate MgsGroundZeroes.exe. Please check the Settings and try again.", "Error launching Ground Zeroes", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

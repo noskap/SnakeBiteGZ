@@ -13,6 +13,10 @@ namespace SnakeBite
     public static class Tools
     {
         internal static List<string> ignoreFileList = new List<string>(new string[] {
+            "MgsGroundZeroes.exe",
+            "data_00.g0s",
+            "data_01.g0s",
+            "data_02.g0s",
             "mgsvtpp.exe",
             "mgsvmgo.exe",
             "steam_api64.dll",
@@ -52,6 +56,7 @@ namespace SnakeBite
             "clo",
             "csnav",
             "dat",
+            "g0s",
             "des",
             "dnav",
             "dnav2",

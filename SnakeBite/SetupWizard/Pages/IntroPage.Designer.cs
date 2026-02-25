@@ -44,7 +44,7 @@
             this.labelWelcome.Name = "labelWelcome";
             this.labelWelcome.Size = new System.Drawing.Size(234, 30);
             this.labelWelcome.TabIndex = 4;
-            this.labelWelcome.Text = "Welcome to SnakeBite";
+            this.labelWelcome.Text = "Welcome to SnakeBiteGZ";
             // 
             // labelWelcomeText
             // 
@@ -71,7 +71,7 @@
             this.labelPiracyWarning.Name = "labelPiracyWarning";
             this.labelPiracyWarning.Size = new System.Drawing.Size(429, 95);
             this.labelPiracyWarning.TabIndex = 6;
-            this.labelPiracyWarning.Text = "Notice:\r\n\r\nSnakeBite is not compatible with pirated copies of MGSV:TPP. \r\nIf you " +
+            this.labelPiracyWarning.Text = "Notice:\r\n\r\nSnakeBiteGZ is not compatible with pirated copies of Ground Zeroes. \r\nIf you " +
     "do not own a genuine copy of the game, please consider purchasing it through Ste" +
     "am before using SnakeBite.";
             this.labelPiracyWarning.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
