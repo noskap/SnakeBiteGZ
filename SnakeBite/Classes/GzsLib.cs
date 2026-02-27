@@ -223,7 +223,7 @@ namespace SnakeBite.GzsTool
             {
                 if (Path.GetFullPath(SourceDirectory) != Path.GetFullPath(destinationDir))
                 {
-                    if (Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
+                    if (Directory.Exists(destinationDir)) Util.DeleteDirectory(destinationDir);
                     Util.MoveDirectory(SourceDirectory, destinationDir); 
                     moved = true;
                 }
@@ -237,15 +237,34 @@ namespace SnakeBite.GzsTool
                 
                 if (File.Exists(tempOutputPath))
                 {
-                    int retries = 5;
+                    int retries = 40; // 40 * 500ms = 20 seconds to allow AV to finish scanning a 1.6GB file
                     while (retries > 0)
                     {
                         try
                         {
                             if (File.Exists(FileName)) File.Delete(FileName);
-                            File.Copy(tempOutputPath, FileName, true);
-                            File.Delete(tempOutputPath);
+                            File.Move(tempOutputPath, FileName);
                             break;
+                        }
+                        catch (IOException)
+                        {
+                            try {
+                                // Fallback to copy/delete if Move fails due to cross-volume issues
+                                if (File.Exists(FileName)) File.Delete(FileName);
+                                File.Copy(tempOutputPath, FileName, true);
+                                File.Delete(tempOutputPath);
+                                break;
+                            } catch (Exception) {
+                                retries--;
+                                System.Threading.Thread.Sleep(500);
+                                if (retries == 0) throw;
+                            }
+                        }
+                        catch (UnauthorizedAccessException)
+                        {
+                            retries--;
+                            System.Threading.Thread.Sleep(500);
+                            if (retries == 0) throw;
                         }
                         catch (Exception)
                         {
@@ -315,7 +334,7 @@ namespace SnakeBite.GzsTool
                 }
                 finally
                 {
-                    if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                    if (Directory.Exists(tempDir)) Util.DeleteDirectory(tempDir);
                 }
             }
 
@@ -466,7 +485,7 @@ namespace SnakeBite.GzsTool
                 }
                 finally
                 {
-                    if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                    if (Directory.Exists(tempDir)) Util.DeleteDirectory(tempDir);
                 }
             }
 
@@ -728,7 +747,7 @@ namespace SnakeBite.GzsTool
 
                 if (fullSourceDir.TrimEnd('\\') != fullDestDir.TrimEnd('\\'))
                 {
-                    if (Directory.Exists(destinationDir)) Directory.Delete(destinationDir, true);
+                    if (Directory.Exists(destinationDir)) Util.DeleteDirectory(destinationDir);
                     Util.MoveDirectory(SourceDirectory, destinationDir);
                     moved = true;
                 }
@@ -840,7 +859,7 @@ namespace SnakeBite.GzsTool
                             File.Copy(newPath, newPath.Replace(source, dest), true);
                         }
 
-                        Directory.Delete(source, true);
+                        Util.DeleteDirectory(source);
                         return;
                     }
                     catch (IOException)

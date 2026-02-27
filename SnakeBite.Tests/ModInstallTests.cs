@@ -83,7 +83,7 @@ namespace SnakeBite.Tests
 
                 // 3. Post-condition: Check modified MD5
                 var installedMd5 = CalculateMD5(GamePaths.chunk0Path);
-                if (InstalledData02Md5 != installedMd5) throw new Exception($"data_02.g0s hash did not match expected installed hash. Expected {InstalledData02Md5}, but got {installedMd5}.");
+                if (InstalledData02Md5 != installedMd5) throw new Exception(string.Format("data_02.g0s hash did not match expected installed hash. Expected {0}, but got {1}.", InstalledData02Md5, installedMd5));
                 
                 // 4. Action: Uninstall the mod
                 // Since UninstallManager is tightly coupled to UI and current GZ branches
