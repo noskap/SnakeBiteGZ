@@ -10,10 +10,13 @@ namespace SnakeBite.Tests
     public class ModInstallTests
     {
         private const string TestDataPath = @"d:\dev\snakebite_gz\gz";
-        private const string TestModPath = @"d:\dev\snakebite_gz\SnakeBiteGZ\sample mods\mgs1_snake_player_model_swap.mgsvgz";
+        private const string TestModPath = @"d:\dev\snakebite_gz\SnakeBiteGZ\sample mods\e20020-renegade-threat-weather-time-test.mgsvgz";
         
         // This is the MD5 of the unmodified data_02.g0s archive
         private const string OriginalData02Md5 = "2F74C6896F917123E283DEA1D26B89B6";
+
+        // This is the MD5 of the expected FPK extraction and repacking pipeline output
+        private const string InstalledData02Md5 = "37B584C969EB0754304B6993A75442FE";
 
         public void Setup()
         {
@@ -80,7 +83,7 @@ namespace SnakeBite.Tests
 
                 // 3. Post-condition: Check modified MD5
                 var installedMd5 = CalculateMD5(GamePaths.chunk0Path);
-                if (OriginalData02Md5 == installedMd5) throw new Exception("data_02.g0s hash did not change after installation.");
+                if (InstalledData02Md5 != installedMd5) throw new Exception($"data_02.g0s hash did not match expected installed hash. Expected {InstalledData02Md5}, but got {installedMd5}.");
                 
                 // 4. Action: Uninstall the mod
                 // Since UninstallManager is tightly coupled to UI and current GZ branches

@@ -441,7 +441,7 @@ namespace SnakeBite.GzsTool
             }
             finally
             {
-                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+                if (Directory.Exists(tempDir)) Util.DeleteDirectory(tempDir);
             }
             return qarGameFiles;
         }
