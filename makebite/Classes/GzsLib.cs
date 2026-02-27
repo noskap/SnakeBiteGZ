@@ -336,41 +336,98 @@ namespace SnakeBite.GzsTool
              
              string fpkType = FileName.EndsWith(".fpkd") ? "Fpkd" : "Fpk"; // Type enum string match
              string xsiType = "FpkFile";
+             
              Files = SortFpksFiles(fpkType.ToLower(), Files);
 
              XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
              XNamespace xsd = "http://www.w3.org/2001/XMLSchema";
 
-             XElement entries = new XElement("Entries");
-             foreach(string s in Files)
-             {
-                 entries.Add(new XElement("Entry", new XAttribute("FilePath", Tools.ToQarPath(s).TrimStart('/'))));
-             }
-             
-             XElement refs = new XElement("References");
-             if(references != null)
-             {
-                 foreach(string r in references)
-                 {
-                     refs.Add(new XElement("Reference", new XAttribute("FilePath", r)));
-                 }
-             }
-             
-             XDocument doc = new XDocument(
-                 new XElement("ArchiveFile",
-                    new XAttribute(XNamespace.Xmlns + "xsi", xsi),
-                    new XAttribute(XNamespace.Xmlns + "xsd", xsd),
-                    new XAttribute("Name", Path.GetFileName(FileName)),
-                    new XAttribute(xsi + "type", xsiType),
-                    new XAttribute("FpkType", fpkType),
-                    entries,
-                    refs
-                 )
-             );
-             
              // Use safe name for XML and Directory to avoid collisions
              string safeName = Path.GetFileName(FileName).Replace(".", "_");
              string xmlPath = Path.Combine(Path.GetDirectoryName(FileName), safeName + ".xml");
+
+             XDocument doc = null;
+             
+             if (File.Exists(xmlPath))
+             {
+                 try
+                 {
+                     doc = XDocument.Load(xmlPath);
+                     XElement archiveFile = doc.Root;
+                     if (archiveFile != null)
+                     {
+                         XElement entries = archiveFile.Element("Entries");
+                         if (entries != null)
+                         {
+                             List<XElement> originalEntries = entries.Elements("Entry").ToList();
+                             entries.RemoveNodes();
+                             
+                             HashSet<string> filesSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                             foreach (string s in Files) filesSet.Add(Tools.ToQarPath(s).TrimStart('/'));
+
+                             HashSet<string> processed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                             foreach (XElement entry in originalEntries)
+                             {
+                                 XAttribute filePathAttr = entry.Attribute("FilePath");
+                                 if (filePathAttr != null)
+                                 {
+                                     string qPath = Tools.ToQarPath(filePathAttr.Value).TrimStart('/');
+                                     if (filesSet.Contains(qPath))
+                                     {
+                                         entries.Add(entry);
+                                         processed.Add(qPath);
+                                     }
+                                 }
+                             }
+                             
+                             foreach (string s in Files)
+                             {
+                                 string qPath = Tools.ToQarPath(s).TrimStart('/');
+                                 if (!processed.Contains(qPath))
+                                 {
+                                     entries.Add(new XElement("Entry", new XAttribute("FilePath", "/" + qPath)));
+                                     processed.Add(qPath);
+                                 }
+                             }
+                         }
+                     }
+                 }
+                 catch
+                 {
+                     doc = null; 
+                 }
+             }
+             
+             if (doc == null)
+             {
+                 XElement entries = new XElement("Entries");
+                 foreach(string s in Files)
+                 {
+                     entries.Add(new XElement("Entry", new XAttribute("FilePath", "/" + Tools.ToQarPath(s).TrimStart('/'))));
+                 }
+
+                 XElement refs = new XElement("References");
+                 if(references != null)
+                 {
+                     foreach(string r in references)
+                     {
+                         refs.Add(new XElement("Reference", new XAttribute("FilePath", r)));
+                     }
+                 }
+
+                 doc = new XDocument(
+                     new XElement("ArchiveFile",
+                        new XAttribute(XNamespace.Xmlns + "xsi", xsi),
+                        new XAttribute(XNamespace.Xmlns + "xsd", xsd),
+                        new XAttribute("Name", Path.GetFileName(FileName)),
+                        new XAttribute(xsi + "type", xsiType),
+                        new XAttribute("FpkType", fpkType),
+                        entries,
+                        refs
+                     )
+                 );
+             }
              
              doc.Save(xmlPath);
              
@@ -580,6 +637,7 @@ namespace SnakeBite.GzsTool
             if (ext.Equals("xml", StringComparison.OrdinalIgnoreCase) || 
                 ext.Equals("txt", StringComparison.OrdinalIgnoreCase) ||
                 ext.Equals("bat", StringComparison.OrdinalIgnoreCase) ||
+                ext.Equals("inf", StringComparison.OrdinalIgnoreCase) ||
                 ext.Equals("log", StringComparison.OrdinalIgnoreCase))
             {
                 return false;
