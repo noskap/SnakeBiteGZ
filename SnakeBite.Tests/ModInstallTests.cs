@@ -86,6 +86,9 @@ namespace SnakeBite.Tests
                 if (InstalledData02Md5 != installedMd5) throw new Exception(string.Format("data_02.g0s hash did not match expected installed hash. Expected {0}, but got {1}.", InstalledData02Md5, installedMd5));
                 
                 // 4. Action: Uninstall the mod
+                var listIndices = new System.Collections.Generic.List<int> { 0 };
+                bool uninstallSuccess = UninstallManager.UninstallMods(listIndices, true);
+                if (!uninstallSuccess) throw new Exception("Mod uninstallation failed.");
 
                 // 5. Revert-condition: Check reverted MD5
                 var revertedMd5 = CalculateMD5(GamePaths.chunk0Path);

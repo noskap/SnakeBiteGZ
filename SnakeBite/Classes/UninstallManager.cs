@@ -16,7 +16,7 @@ namespace SnakeBite
     {
         private static SettingsManager SBBuildManager = new SettingsManager(GamePaths.SnakeBiteSettings + GamePaths.build_ext);
 
-        public static bool UninstallMods(CheckedListBox.CheckedIndexCollection modIndices, bool skipCleanup = false) // Uninstalls mods based on their indices in the list
+        public static bool UninstallMods(System.Collections.IList modIndices, bool skipCleanup = false) // Uninstalls mods based on their indices in the list
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
