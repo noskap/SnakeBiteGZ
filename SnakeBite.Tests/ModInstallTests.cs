@@ -86,10 +86,6 @@ namespace SnakeBite.Tests
                 if (InstalledData02Md5 != installedMd5) throw new Exception(string.Format("data_02.g0s hash did not match expected installed hash. Expected {0}, but got {1}.", InstalledData02Md5, installedMd5));
                 
                 // 4. Action: Uninstall the mod
-                // Since UninstallManager is tightly coupled to UI and current GZ branches
-                // do not have a working GZ-compatible Uninstaller yet, we simulate the standard 
-                // FPK uninstallation process by fully restoring the FPK.
-                File.Copy(GamePaths.chunk0Path + ".test_original", GamePaths.chunk0Path, true);
 
                 // 5. Revert-condition: Check reverted MD5
                 var revertedMd5 = CalculateMD5(GamePaths.chunk0Path);

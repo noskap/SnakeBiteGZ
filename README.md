@@ -12,7 +12,6 @@ https://github.com/noskap/SnakeBiteGZ
 - Fix Start game not working properly
 - Unit tests using md5 checksums
 - Add more entries to the QAR Dictionary
-- Update install directory to be unique from original SnakeBite
 - MakeBite: Add support for creating mods by diffing a modified unpacked archive against an original vanilla unpacked archive.
 
 ### Key Features
