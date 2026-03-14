@@ -12,14 +12,16 @@ echo ===================================
 echo 1. Build Debug
 echo 2. Build Release
 echo 3. Run Tests
-echo 4. Exit
+echo 4. Bump Minor Version
+echo 5. Exit
 echo ===================================
-set /p choice="Select an option (1-4): "
+set /p choice="Select an option (1-5): "
 
 if "%choice%"=="1" goto BUILD_DEBUG
 if "%choice%"=="2" goto BUILD_RELEASE
 if "%choice%"=="3" goto RUN_TESTS
-if "%choice%"=="4" goto EOF
+if "%choice%"=="4" goto BUMP_MINOR_VERSION
+if "%choice%"=="5" goto EOF
 
 echo Invalid choice.
 pause
@@ -54,6 +56,14 @@ if %ERRORLEVEL% neq 0 (
 echo.
 echo Executing TestRunner...
 "SnakeBite.Tests\bin\Debug\TestRunner.exe"
+echo.
+pause
+goto MENU
+
+:BUMP_MINOR_VERSION
+cls
+echo Bumping Minor Version...
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$files = @('.\SnakeBite\Properties\AssemblyInfo.cs', '.\makebite\Properties\AssemblyInfo.cs'); $version = (Select-String -Path $files[0] -Pattern 'AssemblyVersion\(\""(.*?)\""').Matches[0].Groups[1].Value; Write-Host 'Current Version:' $version; Write-Host ''; $newVer = Read-Host 'Enter new version string (e.g. 0.1.0.0)'; if ([string]::IsNullOrWhiteSpace($newVer)) { Write-Host 'Aborted.'; exit }; foreach ($f in $files) { (Get-Content $f -Encoding UTF8) -replace 'AssemblyVersion\(\"".*?\""', ('AssemblyVersion(\""' + $newVer + '\""') -replace 'AssemblyFileVersion\(\"".*?\""', ('AssemblyFileVersion(\""' + $newVer + '\""') | Set-Content $f -Encoding UTF8 }; Write-Host ''; Write-Host 'Version successfully bumped to' $newVer;"
 echo.
 pause
 goto MENU
