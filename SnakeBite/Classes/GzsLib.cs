@@ -457,6 +457,8 @@ namespace SnakeBite.GzsTool
                         File.Copy(wantedFile, OutputFile, true);
                         return true;
                     }
+                    
+                    // Fallback to hash-based search in tempDir
                     ulong hash = Tools.NameToHash(FilePath);
                     string hashHex = hash.ToString("x");
                     string hashFile = Directory.GetFiles(tempDir, "*.*", SearchOption.AllDirectories)

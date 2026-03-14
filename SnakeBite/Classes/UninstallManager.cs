@@ -92,24 +92,31 @@ namespace SnakeBite
             GameData gameData = SBBuildManager.GetGameData();
             ModManager.ValidateGameData(ref gameData);
 
+            Debug.LogLine("[Uninstall] Loading dictionaries", Debug.LogLevel.Basic);
+            GzsLib.LoadModDictionaries();
+
             Debug.LogLine("[Uninstall] Building gameFiles lists", Debug.LogLevel.Basic);
             var baseGameFiles = GzsLib.ReadBaseData(false, hasData01, hasData02);
             try
             {
                 ModManager.PrepGameDirFiles();
                 // begin uninstall
-                UninstallMods(selectedMods, ref oneFiles);
+                UninstallMods(selectedMods, ref oneFiles, baseGameFiles);
 
                 if (hasData02)
                 {
                     twoFiles = Directory.GetFiles("_working2", "*.*", SearchOption.AllDirectories).Select(f => f.Replace("_working2" + "\\", "").Replace("\\", "/")).ToList();
                     twoFiles.Sort();
+                    Debug.LogLine(String.Format("[Uninstall] Repacking data_02 with {0} files", twoFiles.Count), Debug.LogLevel.Basic);
+                    foreach (string f in twoFiles) Debug.LogLine("[Uninstall] - " + f, Debug.LogLevel.All);
                     GzsLib.WriteQarArchive(GamePaths.chunk0Path + GamePaths.build_ext, "_working2", twoFiles, GzsLib.chunk0Flags);
                 }
                 if (hasData01)
                 {
                     oneFiles = Directory.GetFiles("_working1", "*.*", SearchOption.AllDirectories).Select(f => f.Replace("_working1" + "\\", "").Replace("\\", "/")).ToList();
                     oneFiles.Sort();
+                    Debug.LogLine(String.Format("[Uninstall] Repacking data_01 with {0} files", oneFiles.Count), Debug.LogLevel.Basic);
+                    foreach (string f in oneFiles) Debug.LogLine("[Uninstall] - " + f, Debug.LogLevel.All);
                     GzsLib.WriteQarArchive(GamePaths.OnePath + GamePaths.build_ext, "_working1", oneFiles, GzsLib.oneFlags);
                 }
                 // end of qar rebuild
@@ -159,7 +166,7 @@ namespace SnakeBite
             }
         }//UninstallMod batch
 
-        private static void UninstallMods(List<ModEntry> uninstallMods, ref List<string> oneFilesList)
+        private static void UninstallMods(List<ModEntry> uninstallMods, ref List<string> oneFilesList, List<Dictionary<ulong, GameFile>> allQarGameFiles)
         {
             Debug.LogLine(String.Format("[Uninstall] Bulk uninstall started"), Debug.LogLevel.Basic);
             List<string> fullRemoveQarPaths; // for qar files that can be removed altogether
@@ -184,8 +191,8 @@ namespace SnakeBite
                 Debug.LogLine(string.Format("[Uninstall] Removing any game dir file entries for {0}", uninstallMod.Name), Debug.LogLevel.Basic);
                 UninstallGameDirEntries(uninstallMod, ref gameData);
 
-                Debug.LogLine(String.Format("[Uninstall] Removing any loose textures for {0}", uninstallMod.Name), Debug.LogLevel.Basic);
-                UninstallLooseFtexs(uninstallMod, ref oneFilesList, ref gameData);
+                Debug.LogLine(String.Format("[Uninstall] Deleting and restoring QAR entries for {0}", uninstallMod.Name), Debug.LogLevel.Basic);
+                UninstallQarEntries(uninstallMod, ref oneFilesList, ref gameData, allQarGameFiles);
 
                 //ZIP: WMV Support
                 if (!isRemovingWMV)
@@ -457,26 +464,65 @@ namespace SnakeBite
             }//foreach fileEntryDirs
         }//UninstallGameDirEntries
 
-        private static void UninstallLooseFtexs(ModEntry mod, ref List<string> oneFilesList, ref GameData gameData)
+        private static void UninstallQarEntries(ModEntry mod, ref List<string> oneFilesList, ref GameData gameData, List<Dictionary<ulong, GameFile>> allQarGameFiles)
         {
             foreach (ModQarEntry qarEntry in mod.ModQarEntries) // check all qar entries in current mod
             {
-                if (qarEntry.FilePath.Contains(".ftex"))
-                { // if the file is an ftex or ftexs
-                    string destFile = Path.Combine("_working1", qarEntry.FilePath);
-                    if (File.Exists(destFile)) // check if the file exists in the extracted 01
+                // Skip entries that were handled by FPK unmerging (Merged source type)
+                if (qarEntry.SourceType == FileSource.Merged) continue;
+
+                string normalizedPath = qarEntry.FilePath.Replace("\\", "/").TrimStart('/');
+                string targetDir = "_working2"; // Default for GZ is 02
+                
+                // Logic to match hasData01/hasData02 determination in UninstallModBatch
+                if (normalizedPath.StartsWith("01/") || normalizedPath.StartsWith("data_01/") ||
+                    normalizedPath == "01.xml" || normalizedPath == "data_01.g0s.xml" || normalizedPath == "01.g0s.xml")
+                {
+                    targetDir = "_working1";
+                }
+                else if (normalizedPath.StartsWith("02/") || normalizedPath.StartsWith("data_02/") ||
+                         normalizedPath == "02.xml" || normalizedPath == "data_02.g0s.xml" || normalizedPath == "data_02.xml")
+                {
+                    targetDir = "_working2";
+                }
+                else if (normalizedPath.EndsWith(".ftex") || normalizedPath.EndsWith(".ftexs"))
+                {
+                    targetDir = "_working1";
+                }
+
+                // If path has a prefix, we should check both with and without prefix for the disk file
+                string cleanPath = normalizedPath;
+                if (cleanPath.StartsWith("01/") || cleanPath.StartsWith("02/")) cleanPath = cleanPath.Substring(3);
+                else if (cleanPath.StartsWith("data_01/") || cleanPath.StartsWith("data_02/")) cleanPath = cleanPath.Substring(8);
+
+                string destFile = Path.Combine(targetDir, Tools.ToWinPath(cleanPath));
+                
+                // 1. Delete modded version
+                if (File.Exists(destFile))
+                {
+                    try { File.Delete(destFile); } catch { }
+                }
+
+                // 2. Restore vanilla version if it existed
+                ulong nameHash = Tools.NameToHash(cleanPath);
+                foreach (var archiveFiles in allQarGameFiles)
+                {
+                    GameFile vanillaFile;
+                    if (archiveFiles.TryGetValue(nameHash, out vanillaFile))
                     {
-                        try
-                        {
-                            File.Delete(destFile); // deletes the specified file
-                        }
-                        catch
-                        {
-                            Console.WriteLine("[Uninstall] Could not delete: " + destFile);
-                        }
+                        string vanillaArchivePath = Path.Combine(GamePaths.GameDir, vanillaFile.QarFile);
+                        Debug.LogLine(string.Format("[Uninstall] Restoring vanilla file: {0} from {1}", cleanPath, vanillaFile.QarFile), Debug.LogLevel.Basic);
+                        bool success = GzsLib.ExtractFileByHash<QarFile>(vanillaArchivePath, vanillaFile.FileHash, destFile);
+                        Debug.LogLine(string.Format("[Uninstall] Extraction success for {0}: {1}", cleanPath, success), Debug.LogLevel.Basic);
+                        break;
                     }
-                    gameData.GameQarEntries.RemoveAll(file => Tools.CompareHashes(file.FilePath, qarEntry.FilePath)); //remove all mentions of the deleted texture from snakebite.xml
-                    oneFilesList.RemoveAll(file => Tools.CompareHashes(file, qarEntry.FilePath)); // removes all mentions of deleted texture from 01.dat's repack list
+                }
+
+                // 3. Clean up lists
+                gameData.GameQarEntries.RemoveAll(file => Tools.CompareHashes(file.FilePath, qarEntry.FilePath));
+                if (targetDir == "_working1")
+                {
+                    oneFilesList.RemoveAll(file => Tools.CompareHashes(file, qarEntry.FilePath));
                 }
             }
         }//UninstallLooseFtexs
