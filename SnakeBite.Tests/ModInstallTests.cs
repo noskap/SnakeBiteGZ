@@ -43,6 +43,20 @@ namespace SnakeBite.Tests
             // Remove any build files
             ModManager.ClearBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.chunk0Path, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
             ModManager.CleanupFolders();
+            
+            // Delete actual snakebite.xml settings to prevent cross-test pollution
+            if (File.Exists(GamePaths.SnakeBiteSettings))
+            {
+                File.Delete(GamePaths.SnakeBiteSettings);
+            }
+            if (File.Exists(GamePaths.SnakeBiteSettings + GamePaths.build_ext))
+            {
+                File.Delete(GamePaths.SnakeBiteSettings + GamePaths.build_ext);
+            }
+
+            // Re-initialize a fresh settings file
+            var initSettings = new Settings();
+            initSettings.SaveTo(GamePaths.SnakeBiteSettings);
         }
 
         private string CalculateMD5(string filename)
@@ -71,7 +85,7 @@ namespace SnakeBite.Tests
 
                 // 1. Pre-condition: Check original MD5
                 var initialMd5 = CalculateMD5(GamePaths.chunk0Path);
-                if (OriginalData02Md5 != initialMd5) throw new Exception("Initial data_02.g0s hash does not match expected vanilla hash. Ensure the archive is clean.");
+                if (OriginalData02Md5 != initialMd5) throw new Exception(string.Format("Initial data_02.g0s hash does not match expected vanilla hash. Expected {0}, got {1}.", OriginalData02Md5, initialMd5));
 
                 // Create a backup of the original for standard SnakeBite uninstall flow
                 File.Copy(GamePaths.chunk0Path, GamePaths.chunk0Path + ".test_original", true);
@@ -87,12 +101,12 @@ namespace SnakeBite.Tests
                 
                 // 4. Action: Uninstall the mod
                 var listIndices = new System.Collections.Generic.List<int> { 0 };
-                bool uninstallSuccess = UninstallManager.UninstallMods(listIndices, true);
+                bool uninstallSuccess = UninstallManager.UninstallMods(listIndices);
                 if (!uninstallSuccess) throw new Exception("Mod uninstallation failed.");
 
                 // 5. Revert-condition: Check reverted MD5
-                var revertedMd5 = CalculateMD5(GamePaths.chunk0Path);
-                if (OriginalData02Md5 != revertedMd5) throw new Exception("data_02.g0s was not properly restored to its original state after uninstall.");
+                var restoredMd5 = CalculateMD5(GamePaths.chunk0Path);
+                if (OriginalData02Md5 != restoredMd5) throw new Exception(string.Format("data_02.g0s was not properly restored to its original state after uninstall. Expected {0}, got {1}.", OriginalData02Md5, restoredMd5));
             }
             finally
             {

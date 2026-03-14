@@ -50,31 +50,65 @@ namespace SnakeBite
 
 
 
-            List<string> oneFiles = null;
-            bool hasFtexs = ModManager.foundLooseFtexs(selectedMods);
-            if (hasFtexs)
+            List<string> oneFiles = new List<string>();
+            List<string> twoFiles = new List<string>();
+            bool hasData01 = false;
+            bool hasData02 = false;
+
+            foreach (var mod in selectedMods)
             {
-                // if necessary, extracts 01.dat and creates a list of filenames similar to zeroFiles. only textures are pruned from the list.
-                oneFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.OnePath, "_working1");
-                oneFiles.RemoveAll(file => file.EndsWith("_unknown"));
+                foreach (var entry in mod.ModQarEntries)
+                {
+                    string path = entry.FilePath;
+                    // Replace backslashes with forward slashes for easier comparison, and strip leading slashes
+                    string normalizedPath = path.Replace("\\", "/").TrimStart('/');
+                    
+                    if (normalizedPath.StartsWith("02/") || normalizedPath.StartsWith("data_02/") ||
+                        normalizedPath == "02.xml" || normalizedPath == "data_02.g0s.xml" || normalizedPath == "data_02.xml")
+                        hasData02 = true;
+                    else if (normalizedPath.StartsWith("01/") || normalizedPath.StartsWith("data_01/") ||
+                             normalizedPath == "01.xml" || normalizedPath == "data_01.g0s.xml" || normalizedPath == "01.g0s.xml")
+                        hasData01 = true;
+                    else {
+                        if (normalizedPath.EndsWith(".ftex") || normalizedPath.EndsWith(".ftexs")) hasData01 = true;
+                        else hasData02 = true;
+                    }
+                    if (hasData01 && hasData02) break;
+                }
+                if (hasData01 && hasData02) break;
             }
 
-            //end of qar extraction
+            if (hasData02)
+            {
+                Debug.LogLine("[Uninstall] Extracting data_02.g0s", Debug.LogLevel.Basic);
+                twoFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.chunk0Path, "_working2");
+            }
+            if (hasData01)
+            {
+                Debug.LogLine("[Uninstall] Extracting data_01.g0s", Debug.LogLevel.Basic);
+                oneFiles = GzsLib.ExtractArchive<QarFile>(GamePaths.OnePath, "_working1");
+            }
+
             GameData gameData = SBBuildManager.GetGameData();
             ModManager.ValidateGameData(ref gameData);
 
             Debug.LogLine("[Uninstall] Building gameFiles lists", Debug.LogLevel.Basic);
-            var baseGameFiles = GzsLib.ReadBaseData();
+            var baseGameFiles = GzsLib.ReadBaseData(false, hasData01, hasData02);
             try
             {
                 ModManager.PrepGameDirFiles();
                 // begin uninstall
                 UninstallMods(selectedMods, ref oneFiles);
 
-
-
-                if (hasFtexs)
+                if (hasData02)
                 {
+                    twoFiles = Directory.GetFiles("_working2", "*.*", SearchOption.AllDirectories).Select(f => f.Replace("_working2" + "\\", "").Replace("\\", "/")).ToList();
+                    twoFiles.Sort();
+                    GzsLib.WriteQarArchive(GamePaths.chunk0Path + GamePaths.build_ext, "_working2", twoFiles, GzsLib.chunk0Flags);
+                }
+                if (hasData01)
+                {
+                    oneFiles = Directory.GetFiles("_working1", "*.*", SearchOption.AllDirectories).Select(f => f.Replace("_working1" + "\\", "").Replace("\\", "/")).ToList();
                     oneFiles.Sort();
                     GzsLib.WriteQarArchive(GamePaths.OnePath + GamePaths.build_ext, "_working1", oneFiles, GzsLib.oneFlags);
                 }
@@ -82,7 +116,7 @@ namespace SnakeBite
                 
                 // overwrite old mod data
                 ModManager.PromoteGameDirFiles();
-                ModManager.PromoteBuildFiles(GamePaths.OnePath, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
+                ModManager.PromoteBuildFiles(GamePaths.ZeroPath, GamePaths.OnePath, GamePaths.chunk0Path, GamePaths.SnakeBiteSettings, GamePaths.SavePresetPath);
                 
                 if (!skipCleanup)
                 {
@@ -262,18 +296,39 @@ namespace SnakeBite
                 List<string> fpkPathsForThisQar = partialRemoveFpkEntries.Where(entry => entry.FpkFile == partialEditQarEntry.FilePath).Select(fpkEntry => Tools.ToWinPath(fpkEntry.FilePath)).ToList();
                 var fpkReferences = new List<string>();//tex references in fpk that need to be preserved/transfered to the rebuilt fpk
 
+                string cleanFilePath = partialEditQarEntry.FilePath;
+                string targetDir = "_working2";
+
+                if (cleanFilePath.StartsWith("/00/") || cleanFilePath.StartsWith("\\00\\") ||
+                    cleanFilePath.StartsWith("/02/") || cleanFilePath.StartsWith("\\02\\") ||
+                    cleanFilePath.StartsWith("/data_00/") || cleanFilePath.StartsWith("\\data_00\\") ||
+                    cleanFilePath.StartsWith("/data_02/") || cleanFilePath.StartsWith("\\data_02\\"))
+                {
+                    int pLen = cleanFilePath.StartsWith("/0") || cleanFilePath.StartsWith("\\0") ? 4 : 9;
+                    cleanFilePath = cleanFilePath.Substring(pLen);
+                    targetDir = "_working2";
+                }
+                else if (cleanFilePath.StartsWith("/01/") || cleanFilePath.StartsWith("\\01\\") ||
+                         cleanFilePath.StartsWith("/data_01/") || cleanFilePath.StartsWith("\\data_01\\"))
+                {
+                    int pLen = cleanFilePath.StartsWith("/0") || cleanFilePath.StartsWith("\\0") ? 4 : 9;
+                    cleanFilePath = cleanFilePath.Substring(pLen);
+                    targetDir = "_working1";
+                }
+
                 // pull the vanilla qar file from the game archive, send to _gameFpk folder
-                string winQarEntryPath = Tools.ToWinPath(partialEditQarEntry.FilePath);
+                string winQarEntryPath = Tools.ToWinPath(cleanFilePath);
                 string gameQarPath = Path.Combine("_gameFpk", winQarEntryPath);
                 if (partialEditQarEntry.SourceName != null)
                 {
-                    string vanillaArchivePath = Path.Combine(GamePaths.GameDir, "master\\" + partialEditQarEntry.SourceName);
+                    string vanillaArchivePath = Path.Combine(GamePaths.GameDir, partialEditQarEntry.SourceName);
                     //Debug.LogLine(string.Format("Pulling {0} from {1}", partialRemoveQarEntry.FilePath, partialRemoveQarEntry.SourceName));
                     GzsLib.ExtractFileByHash<QarFile>(vanillaArchivePath, partialEditQarEntry.Hash, gameQarPath);
                     fpkReferences = GzsLib.GetFpkReferences(gameQarPath);
                 }
-                // pull the modded qar file from _working0 (assumed to already exist when the uninstall process reads 00.dat), send to _build folder
-                string workingZeroQarPath = Path.Combine("_working0", winQarEntryPath);
+                
+                // pull the modded qar file from _working2 / _working1, send to _build folder
+                string workingZeroQarPath = Path.Combine(targetDir, winQarEntryPath);
                 List<string> moddedFpkFiles = GzsLib.ExtractArchive<FpkFile>(workingZeroQarPath, "_build");
 
                 // split the fpk paths for this Qar into two categories:

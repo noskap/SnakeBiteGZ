@@ -180,7 +180,7 @@ namespace SnakeBite.GzsTool
         }
 
         // CLI-based QAR/G0S repacking
-        private static void WriteQarArchiveViaCli(string FileName, string SourceDirectory, List<string> Files, uint Flags)
+        private static void WriteQarArchiveViaCli(string FileName, string SourceDirectory, List<string> Files, uint Flags, string CustomXmlPath = null)
         {
             XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
             XNamespace xsd = "http://www.w3.org/2001/XMLSchema";
@@ -192,31 +192,146 @@ namespace SnakeBite.GzsTool
             string destinationDir = Path.Combine(Path.GetDirectoryName(FileName), safeName);
             string xmlName = safeName + ".g0s";
 
+            // Load preserved XML if available (GzsTool leaves this behind on extraction)
+            string preservedXmlPath = SourceDirectory.TrimEnd('\\') + ".fpk_manifest.xml";
+            XDocument preservedDoc = null;
+            if (File.Exists(preservedXmlPath))
+            {
+                try { preservedDoc = XDocument.Load(preservedXmlPath); } catch {}
+            }
+
             // Generate XML
             XElement entries = new XElement("Entries");
             foreach (string s in Files)
             {
                 if (s.EndsWith("_unknown")) { continue; }
                 bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); 
-                entries.Add(new XElement("Entry", 
-                    new XAttribute("FilePath", Tools.ToQarPath(s)),
-                    new XAttribute("Compressed", compressed)
-                ));
+                
+                string qarPath = Tools.ToQarPath(s);
+                string diskPath = Path.Combine(SourceDirectory, Tools.ToWinPath(s));
+                XElement newEntry = new XElement("Entry", 
+                    new XAttribute("FilePath", qarPath)
+                );
+                if (compressed)
+                {
+                    newEntry.Add(new XAttribute("Compressed", "true"));
+                }
+
+                if (preservedDoc != null && preservedDoc.Root != null)
+                {
+                    XElement pEntries = preservedDoc.Root.Element("Entries");
+                    if (pEntries != null)
+                    {
+                        ulong diskHash = Tools.NameToHash(qarPath);
+                        string diskName = Path.GetFileName(qarPath);
+                        XElement match = pEntries.Elements("Entry").FirstOrDefault(e => 
+                        {
+                            var fPathAttr = e.Attribute("FilePath");
+                            var fHashAttr = e.Attribute("Hash");
+                            if (fPathAttr == null) return false;
+                            
+                            // 1. Try path match
+                            string pPath = fPathAttr.Value.Replace("\\", "/").TrimStart('/');
+                            string cPath = qarPath.TrimStart('/');
+                            if (pPath == cPath || pPath == diskName || fPathAttr.Value == qarPath) return true;
+
+                            // 2. Try hash match for bit-perfect parity
+                            if (fHashAttr != null)
+                            {
+                                ulong pHash;
+                                if (ulong.TryParse(fHashAttr.Value, out pHash))
+                                {
+                                    return pHash == diskHash;
+                                }
+                            }
+                            return false;
+                        });
+                        
+                        if (match != null)
+                        {
+                            string matchPath = match.Attribute("FilePath").Value;
+                            if (matchPath != qarPath) {
+                                // Align disk file with vanilla manifest path
+                                string workingDir = SourceDirectory; // Assuming SourceDirectory is the working directory for files
+                                string newDiskPath = Path.Combine(workingDir, Tools.ToWinPath(matchPath));
+                                if (diskPath != newDiskPath) {
+                                    string newDir = Path.GetDirectoryName(newDiskPath);
+                                    if (!Directory.Exists(newDir)) Directory.CreateDirectory(newDir);
+                                    if (File.Exists(newDiskPath)) File.Delete(newDiskPath);
+                                    File.Move(diskPath, newDiskPath);
+                                    diskPath = newDiskPath;
+                                    qarPath = matchPath;
+                                }
+                            }
+
+                            var hashAttr = match.Attribute("Hash");
+                            if (hashAttr != null)
+                            {
+                                if (newEntry.Attribute("Hash") != null) newEntry.Attribute("Hash").Value = hashAttr.Value;
+                                else newEntry.Add(new XAttribute("Hash", hashAttr.Value));
+                            }
+                            
+                            var compAttr = match.Attribute("Compressed");
+                            if (compAttr != null)
+                            {
+                                if (newEntry.Attribute("Compressed") != null) newEntry.Attribute("Compressed").Value = compAttr.Value;
+                                else newEntry.Add(new XAttribute("Compressed", compAttr.Value));
+                            }
+                            else if (newEntry.Attribute("Compressed") != null)
+                            {
+                                newEntry.Attribute("Compressed").Remove();
+                            }
+
+                            newEntry.Attribute("FilePath").Value = match.Attribute("FilePath").Value; // Keep the original FilePath format (often missing the leading slash)
+                        }
+                    }
+                }
+                
+                entries.Add(newEntry);
+            }
+
+            // Merge Custom XML
+            if (!string.IsNullOrEmpty(CustomXmlPath) && File.Exists(CustomXmlPath))
+            {
+                try
+                {
+                    XDocument customDoc = XDocument.Load(CustomXmlPath);
+                    if (customDoc.Root != null)
+                    {
+                        foreach (var customEntry in customDoc.Root.Descendants("Entry"))
+                        {
+                            // Avoid duplicates dynamically
+                            var pAttr = customEntry.Attribute("FilePath");
+                            string customPath = pAttr != null ? pAttr.Value : null;
+                            if (customPath != null && !entries.Elements("Entry").Any(e => { var a = e.Attribute("FilePath"); return a != null && a.Value == customPath; }))
+                            {
+                                entries.Add(new XElement(customEntry));
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogLine("[GzsLib] Error merging CustomXmlPath: " + ex.Message);
+                }
             }
             
-            XDocument doc = new XDocument(
-                new XElement("ArchiveFile", 
+            XElement rootElement = new XElement("ArchiveFile", 
                     new XAttribute(XNamespace.Xmlns + "xsi", xsi),
                     new XAttribute(XNamespace.Xmlns + "xsd", xsd),
-                    new XAttribute("Name", xmlName),
                     new XAttribute(xsi + "type", xsiType),
-                    new XAttribute("Flags", Flags),
+                    new XAttribute("Name", xmlName),
                     entries
-                )
-            );
+                );
+            if (Flags != 0 && Flags != 3150304 && Flags != 3150048)
+            {
+                rootElement.Add(new XAttribute("Flags", Flags));
+            }
+            XDocument doc = new XDocument(rootElement);
             
             string xmlPath = Path.Combine(Path.GetDirectoryName(FileName), safeName + ".xml");
             doc.Save(xmlPath);
+            try { doc.Save(@"D:\dev\snakebite_gz\gz\uninstalled_debug.xml"); } catch { }
 
             bool moved = false;
             try
@@ -231,7 +346,8 @@ namespace SnakeBite.GzsTool
                 string tempOutputPath = Path.Combine(Path.GetDirectoryName(FileName), xmlName);
                 if (File.Exists(tempOutputPath)) File.Delete(tempOutputPath);
 
-                RunGzsTool(String.Format("\"{0}\"", Path.GetFullPath(xmlPath)));
+                bool success = RunGzsTool(String.Format("\"{0}\"", Path.GetFullPath(xmlPath)));
+                if (!success) throw new Exception("GzsTool.exe failed to compile " + xmlPath);
 
                 if (File.Exists(xmlPath)) File.Delete(xmlPath);
                 
@@ -322,7 +438,18 @@ namespace SnakeBite.GzsTool
                 try
                 {
                     ExtractArchiveViaCli(SourceArchive, tempDir);
-                    string wantedFile = Path.Combine(tempDir, Tools.ToWinPath(FilePath));
+                    string winPath = Tools.ToWinPath(FilePath);
+                    string wantedFile = Path.Combine(tempDir, winPath);
+                    if (!File.Exists(wantedFile))
+                    {
+                        string dir = Path.GetDirectoryName(wantedFile);
+                        if (Directory.Exists(dir))
+                        {
+                            string fileName = Path.GetFileName(wantedFile);
+                            wantedFile = Directory.GetFiles(dir, fileName + ".*").FirstOrDefault() ?? wantedFile;
+                        }
+                    }
+
                     if (File.Exists(wantedFile))
                     {
                         string outDir = Path.GetDirectoryName(OutputFile);
@@ -330,6 +457,19 @@ namespace SnakeBite.GzsTool
                         File.Copy(wantedFile, OutputFile, true);
                         return true;
                     }
+                    ulong hash = Tools.NameToHash(FilePath);
+                    string hashHex = hash.ToString("x");
+                    string hashFile = Directory.GetFiles(tempDir, "*.*", SearchOption.AllDirectories)
+                                        .FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).ToLower().Contains(hashHex));
+                    if (hashFile != null && File.Exists(hashFile))
+                    {
+                        Debug.LogLine(string.Format("[GzsLib] Found hash file: {0} for hash {1}", Path.GetFileName(hashFile), hashHex), Debug.LogLevel.Basic);
+                        string outDir = Path.GetDirectoryName(OutputFile);
+                        if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
+                        File.Copy(hashFile, OutputFile, true);
+                        return true;
+                    }
+                    Debug.LogLine(string.Format("[GzsLib] Hash file NOT found for hash {0} in {1}", hashHex, tempDir), Debug.LogLevel.Basic);
                     return false;
                 }
                 finally
@@ -375,7 +515,28 @@ namespace SnakeBite.GzsTool
                 string filePath;
                 if (HashingExtended.TryGetFilePathFromHash(FileHash, out filePath))
                 {
-                    return ExtractFile<T>(SourceArchive, filePath, OutputFile);
+                    if (ExtractFile<T>(SourceArchive, filePath, OutputFile)) return true;
+                }
+                
+                // Fallback: try extracting whole archive and finding the hash file
+                string tempDir = Path.Combine(Path.GetDirectoryName(SourceArchive), "temp_extract_" + Guid.NewGuid());
+                try
+                {
+                    ExtractArchiveViaCli(SourceArchive, tempDir);
+                    string hashHex = FileHash.ToString("x");
+                    string hashFile = Directory.GetFiles(tempDir, "*.*", SearchOption.AllDirectories)
+                                        .FirstOrDefault(f => Path.GetFileNameWithoutExtension(f).ToLower().Contains(hashHex));
+                    if (hashFile != null && File.Exists(hashFile))
+                    {
+                        string outDir = Path.GetDirectoryName(OutputFile);
+                        if (!Directory.Exists(outDir)) Directory.CreateDirectory(outDir);
+                        File.Copy(hashFile, OutputFile, true);
+                        return true;
+                    }
+                }
+                finally
+                {
+                    if (Directory.Exists(tempDir)) Util.DeleteDirectory(tempDir);
                 }
                 return false;
             }
@@ -524,6 +685,7 @@ namespace SnakeBite.GzsTool
             HashingExtended.ReadDictionary("mod_qar_dict.txt");
 
             MergeDictionaries("qar_dictionary.txt", "mod_qar_dict.txt");
+            MergeDictionaries("gzs_dictionary.txt", "mod_qar_dict.txt");
         }
 
         public static void LoadModDictionary(ModEntry modEntry)
@@ -539,6 +701,7 @@ namespace SnakeBite.GzsTool
             HashingExtended.ReadDictionary("mod_qar_dict.txt");
 
             MergeDictionaries("qar_dictionary.txt", "mod_qar_dict.txt");
+            MergeDictionaries("gzs_dictionary.txt", "mod_qar_dict.txt");
         }
 
         private static void MergeDictionaries(string mainDict, string modDict)
@@ -758,6 +921,9 @@ namespace SnakeBite.GzsTool
             }
             finally
             {
+                // Debug: Save a copy for comparison
+                try { doc.Save("d:\\dev\\snakebite_gz\\gz\\uninstalled_debug.xml"); } catch { }
+
                 if (File.Exists(xmlPath)) File.Delete(xmlPath);
                 if (moved)
                 {
@@ -790,7 +956,7 @@ namespace SnakeBite.GzsTool
             if (IsGzsArchive(FileName))
             {
                 Debug.LogLine("[GzsLib] G0S archive — using CLI repacking");
-                WriteQarArchiveViaCli(FileName, SourceDirectory, Files, Flags);
+                WriteQarArchiveViaCli(FileName, SourceDirectory, Files, Flags, CustomXmlPath);
                 return;
             }
 
@@ -877,8 +1043,28 @@ namespace SnakeBite.GzsTool
             if (File.Exists(sourcePath))
             {
                 Debug.LogLine(String.Format("[GzsLib] Promoting {0} to {1} ({2} KB)", Path.GetFileName(sourcePath), Path.GetFileName(destinationPath), Tools.GetFileSizeKB(sourcePath)));
-                File.Delete(destinationPath);
-                File.Move(sourcePath, destinationPath);
+                int retries = 40; // 40 * 500ms = 20 seconds to allow AV to finish scanning
+                while (retries > 0)
+                {
+                    try
+                    {
+                        if (File.Exists(destinationPath)) File.Delete(destinationPath);
+                        File.Move(sourcePath, destinationPath);
+                        break;
+                    }
+                    catch (IOException)
+                    {
+                        retries--;
+                        System.Threading.Thread.Sleep(500);
+                        if (retries == 0) throw;
+                    }
+                    catch (UnauthorizedAccessException)
+                    {
+                        retries--;
+                        System.Threading.Thread.Sleep(500);
+                        if (retries == 0) throw;
+                    }
+                }
             }
             else
             {
