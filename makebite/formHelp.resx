@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="labelLooseTextureNote.Text" xml:space="preserve">
-    <value>• SnakeBite GZ can install files directly into your MGSVGZ file directory, outside of the .dat files.
+    <value>• SnakeBite GZ can install files directly into your MGSVGZ file directory, outside of the .g0s archives.
         Place a file into a folder titled "GameDir" to install it into the MGSVGZ game directory.
         It should appear like the following:</value>
   </data>

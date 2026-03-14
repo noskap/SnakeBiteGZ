@@ -1,4 +1,4 @@
-﻿namespace makebite
+namespace makebite
 {
     partial class formHelp
     {
@@ -60,7 +60,7 @@
             this.listBox3.FormattingEnabled = true;
             this.listBox3.ItemHeight = 15;
             this.listBox3.Items.AddRange(new object[] {
-            "/GameDir/mod/modules/ShiguTppCamera.lua",
+            "/GameDir/d3d11.dll",
             "/GameDir/dxgi.dll",
             "/GameDir/ReShade.fx",
             "/GameDir/Reshade/CustomFX.undef"});
@@ -76,12 +76,12 @@
             this.listBox2.FormattingEnabled = true;
             this.listBox2.ItemHeight = 15;
             this.listBox2.Items.AddRange(new object[] {
-            "/1d5440a85b9df.1.ftexs",
-            "/1d5440a85b9df.2.ftexs",
-            "/1d5440a85b9df.3.ftexs",
-            "/1d5440a85b9df.ftex",
-            "/3c7809fefe1ec.fpk",
-            "/30708b7517f09.pftxs"});
+            "/data_02/1d5440a85b9df.1.ftexs",
+            "/data_02/1d5440a85b9df.2.ftexs",
+            "/data_02/1d5440a85b9df.3.ftexs",
+            "/data_02/1d5440a85b9df.ftex",
+            "/data_01/3c7809fefe1ec.fpk",
+            "/data_02/30708b7517f09.pftxs"});
             this.listBox2.Location = new System.Drawing.Point(9, 204);
             this.listBox2.Name = "listBox2";
             this.listBox2.Size = new System.Drawing.Size(481, 109);
@@ -94,13 +94,12 @@
             this.listBox1.FormattingEnabled = true;
             this.listBox1.ItemHeight = 15;
             this.listBox1.Items.AddRange(new object[] {
-            "/Assets/tpp/pack/mission2/common/mis_com_dd_soldier_swim_suit.pftxs",
-            "/Assets/tpp/pack/common_source/chara/cm_head/face/cm_f0_h0_v000_eye0.fpk",
-            "/Assets/tpp/pack/common_source/chara/cm_head/face/cm_f0_h0_v000_eye0.fpkd",
-            "/Assets/tpp/chara/qui/Pictures/qui0_body0_def_bsm.1.ftexs",
-            "/Assets/tpp/chara/qui/Pictures/qui0_body0_def_bsm.2.ftexs",
-            "/Assets/tpp/chara/qui/Pictures/qui0_body0_def_bsm.3.ftexs",
-            "/Assets/tpp/chara/qui/Pictures/qui0_body0_def_bsm.ftex"});
+            "/data_02/Assets/tpp/pack/mission/extra/e20020/e20020.fpk",
+            "/data_02/Assets/tpp/script/mission/e20020/e20020_sequence.lua",
+            "/data_01/Assets/tpp/chara/sna/Pictures/sna0_main0_def_bsm.1.ftexs",
+            "/data_01/Assets/tpp/chara/sna/Pictures/sna0_main0_def_bsm.2.ftexs",
+            "/data_01/Assets/tpp/chara/sna/Pictures/sna0_main0_def_bsm.3.ftexs",
+            "/data_01/Assets/tpp/chara/sna/Pictures/sna0_main0_def_bsm.ftex"});
             this.listBox1.Location = new System.Drawing.Point(9, 47);
             this.listBox1.Name = "listBox1";
             this.listBox1.Size = new System.Drawing.Size(481, 109);
@@ -136,7 +135,7 @@
             this.labelAssetDirNote.Name = "labelAssetDirNote";
             this.labelAssetDirNote.Size = new System.Drawing.Size(484, 26);
             this.labelAssetDirNote.TabIndex = 0;
-            this.labelAssetDirNote.Text = "• If your mod contains files within the Assets folder, the Assets folder should b" +
+            this.labelAssetDirNote.Text = "• If your mod contains files within the Assets folder, a data_xx folder should b" +
     "e viewable in the file list.\r\n        The list should appear like the following:" +
     "";
             // 
