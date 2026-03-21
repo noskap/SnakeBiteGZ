@@ -1,4 +1,4 @@
-﻿using ICSharpCode.SharpZipLib.Zip;
+using ICSharpCode.SharpZipLib.Zip;
 using SnakeBite.Forms;
 using SnakeBite.GzsTool;
 using System;
@@ -158,40 +158,7 @@ namespace SnakeBite
                     continue;
                 }
 
-                // check version conflicts
-                var SBVersion = ModManager.GetSBVersion();
-                var MGSVersion = ModManager.GetMGSVersion();
 
-                Version modSBVersion = new Version();
-                Version modMGSVersion = new Version();
-                try
-                {
-                    modSBVersion = metaData.SBVersion.AsVersion();
-                    modMGSVersion = metaData.MGSVersion.AsVersion();
-                }
-                catch
-                {
-                    MessageBox.Show(String.Format("The selected version of {0} was created with an older version of SnakeBite and is no longer compatible, please download the latest version and try again.", metaData.Name), "Mod update required", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    ModFiles.RemoveAt(i);
-                    continue;
-                }
-
-                // Check if mod requires SB update
-                if (modSBVersion > SBVersion)
-                {
-                    if (DialogResult.Yes != MessageBox.Show(String.Format("'{0}' was created with SnakeBite {1} and may not be compatible with {2}.\n\nContinue?", metaData.Name, metaData.SBVersion.AsString(), SBVersion), "Update required", MessageBoxButtons.YesNo, MessageBoxIcon.Warning))
-                    {
-                        ModFiles.RemoveAt(i);
-                    }
-                    continue;
-                }
-
-                if (modSBVersion < new Version(0, 8, 0, 0)) // 0.8.0.0
-                {
-                    MessageBox.Show(String.Format("The selected version of {0} was created with an older version of SnakeBite and is no longer compatible, please download the latest version and try again.", metaData.Name), "Mod update required", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    ModFiles.RemoveAt(i);
-                    continue;
-                }
             }
         }
 
@@ -309,53 +276,7 @@ namespace SnakeBite
         {
             ModEntry metaData = Tools.ReadMetaData(ModFile);
             if (metaData == null) return false;
-            // check version conflicts
-            var SBVersion = ModManager.GetSBVersion();
-            var MGSVersion = ModManager.GetMGSVersion();
-
             SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
-            Version modSBVersion = new Version();
-            Version modMGSVersion = new Version();
-            try
-            {
-                modSBVersion = metaData.SBVersion.AsVersion();
-                modMGSVersion = metaData.MGSVersion.AsVersion();
-            }
-            catch
-            {
-                MessageBox.Show(String.Format("The selected version of {0} was created with an older version of SnakeBite and is no longer compatible, please download the latest version and try again.", metaData.Name), "Mod update required", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
-            }
-
-
-            // Check if mod requires SB update
-            if (modSBVersion > SBVersion)
-            {
-                MessageBox.Show(String.Format("{0} requires SnakeBite version {1} or newer. Please follow the link on the Settings page to get the latest version.", metaData.Name, metaData.SBVersion), "Update required", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
-            }
-
-            if (modSBVersion < new Version(0, 8, 0, 0)) // 0.8.0.0
-            {
-                MessageBox.Show(String.Format("The selected version of {0} was created with an older version of SnakeBite and is no longer compatible, please download the latest version and try again.", metaData.Name), "Mod update required", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return false;
-            }
-
-            // Check MGS version compatibility
-            if (!manager.IsUpToDate(modMGSVersion))
-            {
-                if (MGSVersion > modMGSVersion)
-                {
-                    var contInstall = MessageBox.Show(String.Format("{0} appears to be for an older version of Ground Zeroes. It is recommended that you check for an updated version before installing.\n\nContinue installation?", metaData.Name), "Game version mismatch", MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
-                    if (contInstall == DialogResult.No) return false;
-                }
-                if (MGSVersion < modMGSVersion)
-                {
-                    MessageBox.Show(String.Format("{0} requires Ground Zeroes version {1}, but your installation is version {2}. Please update Ground Zeroes and try again.", metaData.Name, modMGSVersion, MGSVersion), "Update required", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    return false;
-                }
-            }
-            //end of validity checks
 
 
             Debug.LogLine(String.Format("[Mod] Checking conflicts for {0}", metaData.Name), Debug.LogLevel.Basic);
