@@ -319,7 +319,7 @@
             this.MaximizeBox = false;
             this.Name = "formMain";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "MakeBite Mod Builder";
+            this.Text = "MakeBiteGZ";
             this.Load += new System.EventHandler(this.formMain_Load);
             this.groupModInfo.ResumeLayout(false);
             this.groupModInfo.PerformLayout();
