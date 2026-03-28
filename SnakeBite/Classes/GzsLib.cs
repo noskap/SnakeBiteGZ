@@ -211,6 +211,9 @@ namespace SnakeBite.GzsTool
                     XElement archiveFile = doc.Root;
                     if (archiveFile != null)
                     {
+                        archiveFile.SetAttributeValue("Name", xmlName);
+                        archiveFile.SetAttributeValue("Flags", Flags);
+                        
                         XElement entries = archiveFile.Element("Entries");
                         if (entries != null)
                         {
