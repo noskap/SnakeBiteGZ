@@ -55,31 +55,45 @@ namespace SnakeBite.SetupWizard
                     displayPage = 1;
                     break;
 
-                case 1:
-                    Properties.Settings.Default.InstallPath = findInstallPage.InstallPath;
-                    Properties.Settings.Default.Save();
+               case 1:
+                   Properties.Settings.Default.InstallPath = findInstallPage.InstallPath;
+                   Properties.Settings.Default.Save();
 
-                    manager = new SettingsManager(GamePaths.SnakeBiteSettings);
-                    if (!manager.ValidInstallPath)
-                    {
-                        MessageBox.Show("Please select a valid installation directory.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
+                   manager = new SettingsManager(GamePaths.SnakeBiteSettings);
+                   if (!manager.ValidInstallPath)
+                   {
+                       MessageBox.Show("Please select a valid installation directory.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                       return;
+                   }
 
-                    if (!BackupManager.GameFilesExist())
-                    {
-                        MessageBox.Show("Some game data appears to be missing. If you have just revalidated the game data, please wait for Steam to finish downloading the new files before continuing.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-                    // show create backup page, without processing panel, enable skip
-                    createBackupPage.panelProcessing.Visible = false;
-                    contentPanel.Controls.Clear();
-                    contentPanel.Controls.Add(createBackupPage);
-                    buttonSkip.Visible = true;
-                    buttonSkip.Text = "&Skip Backup";
+                   if (!BackupManager.GameFilesExist())
+                   {
+                       MessageBox.Show("Some game data appears to be missing. If you have just revalidated the game data, please wait for Steam to finish downloading the new files before continuing.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                       return;
+                   }
 
-                    displayPage = 2;
-                    break;
+                   if (!manager.IsVanillaG0sSize() || !manager.IsVanillaG0sHash())
+                   {
+                       var result = MessageBox.Show(
+                           "The game files do not match the expected vanilla version of Ground Zeroes.\n\n" +
+                           "This usually means the game has already been modified by another mod or tool.\n\n" +
+                           "It is strongly recommended that you verify game files in Steam first.\n\n" +
+                           "Do you want to continue anyway?",
+                           "Non-Vanilla Game Files Detected",
+                           MessageBoxButtons.YesNo,
+                           MessageBoxIcon.Warning);
+
+                       if (result != DialogResult.Yes) return;
+                   }
+
+                   // show create backup page, without processing panel, enable skip
+                   createBackupPage.panelProcessing.Visible = false;
+                   contentPanel.Controls.Clear();
+                   contentPanel.Controls.Add(createBackupPage);
+                   buttonSkip.Visible = true;
+
+                   displayPage = 2;
+                   break;
 
                 case 2:
                     manager = new SettingsManager(GamePaths.SnakeBiteSettings);

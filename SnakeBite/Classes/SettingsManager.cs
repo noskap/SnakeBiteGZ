@@ -12,13 +12,18 @@ namespace SnakeBite
     public class SettingsManager
     {
         // GAMEVERSION > You will have to update everything here when the game updates, search for GAMEVERSION to find other areas than need to be updated
-        internal static string vanillaDatHash = "36DCF52AD8EE498F6FCF529976D7C8E11240EF2F06D9D193851C5AE45D8D46BF"; //expected original hash for 1.0.15.2 // To generate this run snakebite and toggle mods off, then look for the latest '[UpdateDatHash] Updated 00/01 dat hash to' in the log or grab it from the snakebite.xml
+        internal static string vanillaDatHash = "36DCF52AD8EE498F6FCF529976D7C8E11240EF2F06D9D193851C5AE45D8D46BF";
         internal static Version IntendedGameVersion = new Version(1, 0, 15, 3);
 
-        internal const int MAXZEROSIZE = 496340000; // ballpark estimates of vanilla archive filesizes. max/min by 10k? morbid do you want to document your reasoning on this?
-        internal const int MINZEROSIZE = 496320000;
-        internal const int MAXONESIZE = 264940000;
-        internal const int MINONESIZE = 264920000;
+        // GZ Vanilla MD5 Hashes
+        internal const string VanillaData01Md5 = "9B3F5AD14EBE878E1460CA2994F2673E";
+        internal const string VanillaData02Md5 = "2F74C6896F917123E283DEA1D26B89B6";
+
+        // GZ Corrected file sizes (data_01.g0s is ~1.14 GB)
+        internal const long MAXONESIZE = 1150000000;   // ~1.15 GB
+        internal const long MINONESIZE = 1130000000;   // ~1.13 GB
+        internal const long MAXZEROSIZE = 500000000;   // data_00.g0s (not currently used)
+        internal const long MINZEROSIZE = 400000000;   // data_00.g0s (not currently used)
         // GAMEVERSION <
 
         public string xmlFilePath;
@@ -249,9 +254,10 @@ namespace SnakeBite
         public bool IsVanillaG0sHash()
         {
             // GZ: data_00 ignored.
-            // TODO need to get hashes at some point
-            // return Tools.CalculateDatHash(GamePaths.OnePath) == vanillaDatHash;
-            return true;
+            string hash01 = Tools.CalculateMD5(GamePaths.OnePath);
+            string hash02 = Tools.CalculateMD5(GamePaths.chunk0Path);
+
+            return (hash01 == VanillaData01Md5) && (hash02 == VanillaData02Md5);
         }
 
         public bool IsVanillaG0sSize()
