@@ -114,16 +114,10 @@ pause
 goto MENU
 
 :BUMP_VERSION
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-$files = @('SnakeBite\Properties\AssemblyInfo.cs', 'makebite\Properties\AssemblyInfo.cs'); ^
-$content = Get-Content $files[0] -Raw; ^
-$m = [regex]::Match($content, 'AssemblyVersion\(\"(.*?)\"\)'); ^
-if (!$m.Success) { Write-Host 'Error reading version'; exit }; ^
-$version = $m.Groups[1].Value; ^
-Write-Host \"Current version: $version\"; ^
-$newVer = Read-Host \"Enter new version (e.g. 0.2.0.0)\"; ^
-if ($newVer) { foreach ($f in $files) { (Get-Content $f -Raw) -replace 'AssemblyVersion\(\"[^\"]*\"\)', \"AssemblyVersion(\"$newVer\")\" -replace 'AssemblyFileVersion\(\"[^\"]*\"\)', \"AssemblyFileVersion(\"$newVer\")\" | Set-Content $f } }; ^
-Write-Host \"Version updated to $newVer\"
+cls
+echo Bumping Version...
+powershell -NoProfile -ExecutionPolicy Bypass -File "bump-version.ps1"
+echo.
 pause
 goto MENU
 
