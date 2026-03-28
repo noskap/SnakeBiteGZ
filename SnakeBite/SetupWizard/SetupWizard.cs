@@ -76,6 +76,7 @@ namespace SnakeBite.SetupWizard
                     contentPanel.Controls.Clear();
                     contentPanel.Controls.Add(createBackupPage);
                     buttonSkip.Visible = true;
+                    buttonSkip.Text = "&Skip Backup";
 
                     displayPage = 2;
                     break;
@@ -165,12 +166,43 @@ namespace SnakeBite.SetupWizard
             buttonNext_Click(null, null);
         }
 
-        private void buttonSkip_Click(object sender, EventArgs e)
-        {
-             // GZ: Skip button logic adapted
-             displayPage = 2; // trick into processing as if backup finished
-             buttonNext_Click(null, null);
-        }
+      private void buttonSkip_Click(object sender, EventArgs e)
+      {
+          var result = MessageBox.Show(
+              "Skipping backup creation is not recommended.\n\n" +
+              "SnakeBiteGZ uses backups to safely restore your game files if something goes wrong.\n\n" +
+              "Are you sure you want to skip creating backups?",
+              "Skip Backup Creation?",
+              MessageBoxButtons.YesNo,
+              MessageBoxIcon.Warning);
+
+          if (result != DialogResult.Yes) return;
+
+          // Skip backup and go straight to completion
+          buttonSkip.Visible = false;
+          buttonBack.Visible = false;
+          buttonNext.Enabled = false;
+
+          createBackupPage.panelProcessing.Visible = false;
+          Application.UseWaitCursor = false;
+
+          // Jump to done state
+          contentPanel.Controls.Clear();
+          contentPanel.Controls.Add(mergeDatPage);
+
+          setupComplete = true;
+
+          mergeDatPage.panelProcessing.Visible = false;
+          mergeDatPage.labelWelcome.Text = "Setup complete";
+          mergeDatPage.labelWelcomeText.Text =
+              "SnakeBiteGZ is configured and ready to use.\n\n" +
+              "Note: You skipped creating backups. It is recommended to create them later via Settings.";
+
+          buttonNext.Text = "Do&ne";
+          buttonNext.Enabled = true;
+
+          displayPage = 4;
+      }
 
         private void GoToMergeDatPage()
         {
