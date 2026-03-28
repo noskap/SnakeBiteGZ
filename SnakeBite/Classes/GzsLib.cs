@@ -1,4 +1,4 @@
-﻿// SYNC to makebite
+// SYNC to makebite
 #define SNAKEBITE //TODO bad
 using GzsTool.Core.Common;
 using GzsTool.Core.Common.Interfaces;
@@ -180,7 +180,7 @@ namespace SnakeBite.GzsTool
         }
 
         // CLI-based QAR/G0S repacking
-        private static void WriteQarArchiveViaCli(string FileName, string SourceDirectory, List<string> Files, uint Flags)
+        private static void WriteQarArchiveViaCli(string FileName, string SourceDirectory, List<string> Files, uint Flags, string CustomXmlPath = null)
         {
             XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
             XNamespace xsd = "http://www.w3.org/2001/XMLSchema";
@@ -191,33 +191,164 @@ namespace SnakeBite.GzsTool
             string safeName = Path.GetFileName(FileName).Replace(".", "_");
             string destinationDir = Path.Combine(Path.GetDirectoryName(FileName), safeName);
             string xmlName = safeName + ".g0s";
+            string xmlPath = Path.Combine(Path.GetDirectoryName(FileName), safeName + ".xml");
+            
+            string preservedXmlPath = SourceDirectory.TrimEnd('\\') + ".fpk_manifest.xml";
+            XDocument doc = null;
 
-            // Generate XML
-            XElement entries = new XElement("Entries");
+            HashSet<string> diskFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string s in Files)
             {
-                if (s.EndsWith("_unknown")) { continue; }
-                bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); 
-                entries.Add(new XElement("Entry", 
-                    new XAttribute("FilePath", Tools.ToQarPath(s)),
-                    new XAttribute("Compressed", compressed)
-                ));
+                diskFiles.Add(Tools.ToQarPath(s).TrimStart('/'));
             }
-            
-            XDocument doc = new XDocument(
-                new XElement("ArchiveFile", 
-                    new XAttribute(XNamespace.Xmlns + "xsi", xsi),
-                    new XAttribute(XNamespace.Xmlns + "xsd", xsd),
-                    new XAttribute("Name", xmlName),
-                    new XAttribute(xsi + "type", xsiType),
-                    new XAttribute("Flags", Flags),
-                    entries
-                )
-            );
-            
-            string xmlPath = Path.Combine(Path.GetDirectoryName(FileName), safeName + ".xml");
-            doc.Save(xmlPath);
 
+            if (File.Exists(preservedXmlPath))
+            {
+                Debug.LogLine(String.Format("[GzsLib] Using preserved CLI XML manifest: {0}", preservedXmlPath));
+                try
+                {
+                    doc = XDocument.Load(preservedXmlPath);
+                    XElement archiveFile = doc.Root;
+                    if (archiveFile != null)
+                    {
+                        archiveFile.SetAttributeValue("Name", xmlName);
+                        archiveFile.SetAttributeValue("Flags", Flags);
+                        
+                        XElement entries = archiveFile.Element("Entries");
+                        if (entries != null)
+                        {
+                            List<XElement> originalEntries = entries.Elements("Entry").ToList();
+                            entries.RemoveNodes();
+
+                            HashSet<string> processed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                            foreach (XElement entry in originalEntries)
+                            {
+                                XAttribute filePathAttr = entry.Attribute("FilePath");
+                                if (filePathAttr != null)
+                                {
+                                    string xmlPath2 = filePathAttr.Value.TrimStart('/');
+                                    
+                                    if (diskFiles.Contains(xmlPath2))
+                                    {
+                                        entries.Add(entry);
+                                        processed.Add(xmlPath2);
+                                    }
+                                }
+                            }
+                            
+                            foreach (string s in Files)
+                            {
+                                string qPath = Tools.ToQarPath(s).TrimStart('/');
+                                if (!processed.Contains(qPath) && !s.EndsWith("_unknown"))
+                                {
+                                    bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); 
+                                    entries.Add(new XElement("Entry", 
+                                        new XAttribute("FilePath", "/" + qPath),
+                                        new XAttribute("Compressed", compressed)
+                                    ));
+                                    processed.Add(qPath);
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogLine(String.Format("[GzsLib] Failed to load preserved XML: {0}. Generating fresh.", ex.Message));
+                    doc = null;
+                }
+            }
+
+            if (doc == null)
+            {
+                Debug.LogLine("[GzsLib] No preserved CLI XML \u2014 generating fresh manifest");
+                XElement entries = new XElement("Entries");
+                foreach (string s in Files)
+                {
+                    if (s.EndsWith("_unknown")) { continue; }
+                    bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); 
+                    entries.Add(new XElement("Entry", 
+                        new XAttribute("FilePath", Tools.ToQarPath(s)),
+                        new XAttribute("Compressed", compressed)
+                    ));
+                }
+
+                doc = new XDocument(
+                    new XElement("ArchiveFile", 
+                        new XAttribute(XNamespace.Xmlns + "xsi", xsi),
+                        new XAttribute(XNamespace.Xmlns + "xsd", xsd),
+                        new XAttribute("Name", xmlName),
+                        new XAttribute(xsi + "type", xsiType),
+                        new XAttribute("Flags", Flags),
+                        entries
+                    )
+                );
+            }
+
+            // Merge Custom XML
+            if (!string.IsNullOrEmpty(CustomXmlPath) && File.Exists(CustomXmlPath))
+            {
+                try
+                {
+                    XDocument customDoc = XDocument.Load(CustomXmlPath);
+                    if (customDoc.Root != null)
+                    {
+                        XElement entries = doc.Root.Element("Entries");
+                        if (entries != null)
+                        {
+                            var filePathMap = new Dictionary<string, XElement>(StringComparer.OrdinalIgnoreCase);
+                            var hashMap = new Dictionary<string, XElement>(StringComparer.OrdinalIgnoreCase);
+
+                            foreach (var e in entries.Elements("Entry"))
+                            {
+                                var pathAttr = e.Attribute("FilePath");
+                                if (pathAttr != null) filePathMap[pathAttr.Value] = e;
+
+                                var hashAttr = e.Attribute("Hash");
+                                if (hashAttr != null) hashMap[hashAttr.Value] = e;
+                            }
+
+                            var customEntries = customDoc.Descendants("Entry").ToList();
+                            foreach (var customEntry in customEntries)
+                            {
+                                XAttribute cFilePath = customEntry.Attribute("FilePath");
+                                XAttribute cHash = customEntry.Attribute("Hash");
+
+                                XElement existingEntry = null;
+                                XElement matchedByPath = null;
+                                XElement matchedByHash = null;
+
+                                if (cFilePath != null && filePathMap.TryGetValue(cFilePath.Value, out matchedByPath))
+                                {
+                                    existingEntry = matchedByPath;
+                                }
+                                else if (cHash != null && hashMap.TryGetValue(cHash.Value, out matchedByHash))
+                                {
+                                    existingEntry = matchedByHash;
+                                }
+
+                                if (existingEntry != null)
+                                {
+                                    if (customEntry.Attribute("Compressed") != null) existingEntry.SetAttributeValue("Compressed", customEntry.Attribute("Compressed").Value);
+                                    if (customEntry.Attribute("ContentHash") != null) existingEntry.SetAttributeValue("ContentHash", customEntry.Attribute("ContentHash").Value);
+                                    if (cHash != null && existingEntry.Attribute("Hash") == null) existingEntry.SetAttributeValue("Hash", cHash.Value);
+                                }
+                                else
+                                {
+                                    entries.Add(new XElement(customEntry));
+                                }
+                            }
+                            Debug.LogLine(String.Format("[GzsLib] Merged Custom XML from {0}", CustomXmlPath));
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogLine(String.Format("[GzsLib] Error merging Custom XML {0}: {1}", CustomXmlPath, ex.Message));
+                }
+            }
+
+            doc.Save(xmlPath);
             bool moved = false;
             try
             {
@@ -790,7 +921,7 @@ namespace SnakeBite.GzsTool
             if (IsGzsArchive(FileName))
             {
                 Debug.LogLine("[GzsLib] G0S archive — using CLI repacking");
-                WriteQarArchiveViaCli(FileName, SourceDirectory, Files, Flags);
+                WriteQarArchiveViaCli(FileName, SourceDirectory, Files, Flags, CustomXmlPath);
                 return;
             }
 
@@ -877,8 +1008,22 @@ namespace SnakeBite.GzsTool
             if (File.Exists(sourcePath))
             {
                 Debug.LogLine(String.Format("[GzsLib] Promoting {0} to {1} ({2} KB)", Path.GetFileName(sourcePath), Path.GetFileName(destinationPath), Tools.GetFileSizeKB(sourcePath)));
-                File.Delete(destinationPath);
-                File.Move(sourcePath, destinationPath);
+                int retries = 10;
+                while (retries > 0)
+                {
+                    try
+                    {
+                        if (File.Exists(destinationPath)) File.Delete(destinationPath);
+                        File.Move(sourcePath, destinationPath);
+                        break;
+                    }
+                    catch (IOException)
+                    {
+                        retries--;
+                        System.Threading.Thread.Sleep(500);
+                        if (retries == 0) throw;
+                    }
+                }
             }
             else
             {

@@ -10,9 +10,10 @@ https://github.com/noskap/SnakeBiteGZ
 - Fork GzsLib and unify classes between makebite and snakebite
 - Fix RevertChanges.MGSVPreset
 - Fix Start game not working properly
-- Unit tests using md5 checksums
+- Unit tests for uninstallation
 - Add more entries to the QAR Dictionary
 - MakeBite: Add support for creating mods by diffing a modified unpacked archive against an original vanilla unpacked archive.
+- PFTXS support
 
 ### Key Features
 - **Full support for MGSV:GZ**: Supports unpacking repacking of g0s archives, as well as .mgsvgz mod files.
