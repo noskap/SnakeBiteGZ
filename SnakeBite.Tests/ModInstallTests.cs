@@ -16,11 +16,12 @@ namespace SnakeBite.Tests
         private const string OriginalData02Md5 = "2F74C6896F917123E283DEA1D26B89B6";
 
         // This is the MD5 of the expected FPK extraction and repacking pipeline output
-        private const string InstalledData02Md5 = "A28B525A75C2EDF69F4A1D2D2563C7F4";
+        private const string e20020InstalledData02Md5 = "A28B525A75C2EDF69F4A1D2D2563C7F4";
 
         private const string OriginalData01Md5 = "9B3F5AD14EBE878E1460CA2994F2673E";
-        private const string InstalledData01Md5 = "9B3F5AD14EBE878E1460CA2994F2673E";
-
+        private const string e20020InstalledData01Md5 = "9B3F5AD14EBE878E1460CA2994F2673E";
+        private const string bandanaInstalledData01Md5 = "ABFC96EE1BF3545E11AC8660C5C800E5";
+        private const string bandanaInstalledData02Md5 = "0BAC09860286CD00B023BB95AF8CB37B";
         public void Setup()
         {
             // Initialize game paths for the test
@@ -91,8 +92,8 @@ namespace SnakeBite.Tests
                 var installedMd5 = CalculateMD5(GamePaths.chunk0Path);
                 var installed01Md5 = CalculateMD5(GamePaths.OnePath);
                 
-                if (InstalledData02Md5 != installedMd5) throw new Exception(string.Format("data_02.g0s hash did not match expected installed hash. Expected {0}, but got {1}.", InstalledData02Md5, installedMd5));
-                if (InstalledData01Md5 != installed01Md5) throw new Exception(string.Format("data_01.g0s hash did not match expected installed hash. Expected {0}, but got {1}.", InstalledData01Md5, installed01Md5));
+                if (e20020InstalledData02Md5 != installedMd5) throw new Exception(string.Format("data_02.g0s hash did not match expected installed hash. Expected {0}, but got {1}.", e20020InstalledData02Md5, installedMd5));
+                if (e20020InstalledData01Md5 != installed01Md5) throw new Exception(string.Format("data_01.g0s hash did not match expected installed hash. Expected {0}, but got {1}.", e20020InstalledData01Md5, installed01Md5));
                 
                 // 4. Action: Uninstall the mod (Commented out because UninstallMods is deeply coupled to WinForms)
 
