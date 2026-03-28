@@ -11,6 +11,7 @@ namespace SnakeBite.Tests
     {
         private const string TestDataPath = @"d:\dev\snakebite_gz\gz";
         private const string TestModPath = @"d:\dev\snakebite_gz\SnakeBiteGZ\sample mods\e20020-renegade-threat-weather-time-test.mgsvgz";
+        private const string TestModPath2 = @"d:\dev\snakebite_gz\SnakeBiteGZ\sample mods\data_01_02_test_bandana.mgsvgz";
         
         // This is the MD5 of the unmodified data_02.g0s archive
         private const string OriginalData02Md5 = "2F74C6896F917123E283DEA1D26B89B6";
@@ -60,7 +61,16 @@ namespace SnakeBite.Tests
                 }
             }
         }
-        public void InstallUninstallMod_ShouldModifyAndRevertChecksum()
+        public void RunAllTests()
+        {
+            Console.WriteLine("[ModInstallTests] Running Test 1: e20020...");
+            RunInstallTest(TestModPath, e20020InstalledData01Md5, e20020InstalledData02Md5);
+            
+            Console.WriteLine("[ModInstallTests] Running Test 2: bandana...");
+            RunInstallTest(TestModPath2, bandanaInstalledData01Md5, bandanaInstalledData02Md5);
+        }
+
+        private void RunInstallTest(string modPath, string target01Md5, string target02Md5)
         {
             string dictPath = "qar_dictionary.txt";
             string backupDictPath = "qar_dictionary.txt.test_backup";
@@ -84,7 +94,7 @@ namespace SnakeBite.Tests
                 File.Copy(GamePaths.OnePath, GamePaths.OnePath + GamePaths.original_ext, true);
 
                 // 2. Action: Install the mod
-                var modFiles = new List<string> { TestModPath };
+                var modFiles = new List<string> { modPath };
                 bool installSuccess = InstallManager.InstallMods(modFiles);
                 if (!installSuccess) throw new Exception("Mod installation failed.");
 
@@ -92,8 +102,8 @@ namespace SnakeBite.Tests
                 var installedMd5 = CalculateMD5(GamePaths.chunk0Path);
                 var installed01Md5 = CalculateMD5(GamePaths.OnePath);
                 
-                if (e20020InstalledData02Md5 != installedMd5) throw new Exception(string.Format("data_02.g0s hash did not match expected installed hash. Expected {0}, but got {1}.", e20020InstalledData02Md5, installedMd5));
-                if (e20020InstalledData01Md5 != installed01Md5) throw new Exception(string.Format("data_01.g0s hash did not match expected installed hash. Expected {0}, but got {1}.", e20020InstalledData01Md5, installed01Md5));
+                if (target02Md5 != installedMd5) throw new Exception(string.Format("data_02.g0s hash did not match expected installed hash. Expected {0}, but got {1}.", target02Md5, installedMd5));
+                if (target01Md5 != installed01Md5) throw new Exception(string.Format("data_01.g0s hash did not match expected installed hash. Expected {0}, but got {1}.", target01Md5, installed01Md5));
                 
                 // 4. Action: Uninstall the mod (Commented out because UninstallMods is deeply coupled to WinForms)
 
@@ -106,6 +116,7 @@ namespace SnakeBite.Tests
             finally
             {
                 // Clean up dummy backups internally used by SnakeBite
+                // Restore original archives from backups so the test environment stays pristine
                 if (File.Exists(GamePaths.chunk0Path + GamePaths.original_ext))
                 {
                     if (File.Exists(GamePaths.chunk0Path)) File.Delete(GamePaths.chunk0Path);

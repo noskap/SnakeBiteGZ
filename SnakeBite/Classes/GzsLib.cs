@@ -296,6 +296,18 @@ namespace SnakeBite.GzsTool
                         XElement entries = doc.Root.Element("Entries");
                         if (entries != null)
                         {
+                            var filePathMap = new Dictionary<string, XElement>(StringComparer.OrdinalIgnoreCase);
+                            var hashMap = new Dictionary<string, XElement>(StringComparer.OrdinalIgnoreCase);
+
+                            foreach (var e in entries.Elements("Entry"))
+                            {
+                                var pathAttr = e.Attribute("FilePath");
+                                if (pathAttr != null) filePathMap[pathAttr.Value] = e;
+
+                                var hashAttr = e.Attribute("Hash");
+                                if (hashAttr != null) hashMap[hashAttr.Value] = e;
+                            }
+
                             var customEntries = customDoc.Descendants("Entry").ToList();
                             foreach (var customEntry in customEntries)
                             {
@@ -303,15 +315,16 @@ namespace SnakeBite.GzsTool
                                 XAttribute cHash = customEntry.Attribute("Hash");
 
                                 XElement existingEntry = null;
-                                if (cFilePath != null)
+                                XElement matchedByPath = null;
+                                XElement matchedByHash = null;
+
+                                if (cFilePath != null && filePathMap.TryGetValue(cFilePath.Value, out matchedByPath))
                                 {
-                                    existingEntry = entries.Elements("Entry").FirstOrDefault(e => 
-                                        e.Attribute("FilePath") != null && e.Attribute("FilePath").Value.Equals(cFilePath.Value, StringComparison.OrdinalIgnoreCase));
+                                    existingEntry = matchedByPath;
                                 }
-                                else if (cHash != null)
+                                else if (cHash != null && hashMap.TryGetValue(cHash.Value, out matchedByHash))
                                 {
-                                    existingEntry = entries.Elements("Entry").FirstOrDefault(e => 
-                                        e.Attribute("Hash") != null && e.Attribute("Hash").Value.Equals(cHash.Value, StringComparison.OrdinalIgnoreCase));
+                                    existingEntry = matchedByHash;
                                 }
 
                                 if (existingEntry != null)
@@ -995,8 +1008,22 @@ namespace SnakeBite.GzsTool
             if (File.Exists(sourcePath))
             {
                 Debug.LogLine(String.Format("[GzsLib] Promoting {0} to {1} ({2} KB)", Path.GetFileName(sourcePath), Path.GetFileName(destinationPath), Tools.GetFileSizeKB(sourcePath)));
-                File.Delete(destinationPath);
-                File.Move(sourcePath, destinationPath);
+                int retries = 10;
+                while (retries > 0)
+                {
+                    try
+                    {
+                        if (File.Exists(destinationPath)) File.Delete(destinationPath);
+                        File.Move(sourcePath, destinationPath);
+                        break;
+                    }
+                    catch (IOException)
+                    {
+                        retries--;
+                        System.Threading.Thread.Sleep(500);
+                        if (retries == 0) throw;
+                    }
+                }
             }
             else
             {
