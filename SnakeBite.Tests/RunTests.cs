@@ -15,8 +15,8 @@ namespace TestRunner
                 Console.WriteLine("Setup...");
                 testObj.Setup();
                 
-                Console.WriteLine("Running InstallUninstallMod_ShouldModifyAndRevertChecksum...");
-                testObj.InstallUninstallMod_ShouldModifyAndRevertChecksum();
+                Console.WriteLine("Running All Tests...");
+                testObj.RunAllTests();
                 
                 Console.WriteLine("All tests passed successfully!");
             }

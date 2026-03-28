@@ -55,7 +55,8 @@ if %ERRORLEVEL% neq 0 (
 )
 echo.
 echo Executing TestRunner...
-"SnakeBite.Tests\bin\Debug\TestRunner.exe"
+"SnakeBite.Tests\bin\Debug\TestRunner.exe" > test_results.txt 2>&1
+type "test_results.txt"
 echo.
 pause
 goto MENU
