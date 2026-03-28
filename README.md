@@ -13,6 +13,7 @@ https://github.com/noskap/SnakeBiteGZ
 - Unit tests using md5 checksums
 - Add more entries to the QAR Dictionary
 - MakeBite: Add support for creating mods by diffing a modified unpacked archive against an original vanilla unpacked archive.
+- Automate build release not copying makebite and zipping
 
 ### Key Features
 - **Full support for MGSV:GZ**: Supports unpacking repacking of g0s archives, as well as .mgsvgz mod files.
