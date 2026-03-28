@@ -13,7 +13,6 @@ https://github.com/noskap/SnakeBiteGZ
 - Unit tests for uninstallation
 - Add more entries to the QAR Dictionary
 - MakeBite: Add support for creating mods by diffing a modified unpacked archive against an original vanilla unpacked archive.
-- Automate build release not copying makebite and zipping
 - PFTXS support
 
 ### Key Features
@@ -69,7 +68,7 @@ To manually revalidate the files through steam:
 Use MakeBiteGZ (included) to create `.MGSVGZ` mod files compatible with SnakeBiteGZ.
 
 ## Running Unit Tests
-If you intend to contribute to the codebase, you can execute the unit tests by running `build.bat` and selecting `3. Run Tests`. 
+If you intend to contribute to the codebase, you can execute the unit tests by running `build.bat` and selecting `4. Run Tests`.
 
 **Note for Developers:** Game archives are excluded from this repository due to size and copyright constraints. To run the test suite locally, you must extract a completely clean, vanilla copy of `data_02.g0s` (approx 1.5GB) from your Steam installation and place it at:
 `[Repository Root]\gz\data_02.g0s`
