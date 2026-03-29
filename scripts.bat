@@ -77,8 +77,8 @@ echo Copying files to dist\%RELEASE_FOLDER%...
 
 xcopy /y "SnakeBite\bin\Release\SnakeBiteGZ.exe"          "dist\%RELEASE_FOLDER%\"
 xcopy /y "SnakeBite\bin\Release\SnakeBiteGZ.exe.config"  "dist\%RELEASE_FOLDER%\"
-xcopy /y "SnakeBite\bin\Release\MakeBiteGZ.exe"          "dist\%RELEASE_FOLDER%\"
-xcopy /y "SnakeBite\bin\Release\MakeBiteGZ.exe.config"   "dist\%RELEASE_FOLDER%\"
+xcopy /y "makebite\bin\Release\MakeBiteGZ.exe"           "dist\%RELEASE_FOLDER%\"
+xcopy /y "makebite\bin\Release\MakeBiteGZ.exe.config"    "dist\%RELEASE_FOLDER%\"
 
 xcopy /y "SnakeBite\bin\Release\*.dll"                    "dist\%RELEASE_FOLDER%\" 2>nul
 xcopy /y "SnakeBite\bin\Release\*.txt"                    "dist\%RELEASE_FOLDER%\" 2>nul
