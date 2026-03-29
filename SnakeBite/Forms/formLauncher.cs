@@ -200,22 +200,22 @@ namespace SnakeBite
             };
             soundWorker.RunWorkerAsync();
         }
-
-        private void StartGame(bool silent = false)
-        {
-            SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
-            if (manager.ValidInstallPath)
-            {
-                Process.Start(GamePaths.GameDir + "\\MgsGroundZeroes.exe");
-                if (Properties.Settings.Default.CloseSnakeBiteOnLaunch)
-                    ExitLauncher(silent);
-            }
-            else
-            {
-                MessageBox.Show("Unable to locate MgsGroundZeroes.exe. Please check the Settings and try again.", "Error launching Ground Zeroes", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
+        
+         private void StartGame(bool silent = false)
+         {
+             SettingsManager manager = new SettingsManager(GamePaths.SnakeBiteSettings);
+             if (manager.ValidInstallPath)
+             {
+                 Process.Start("steam://rungameid/311340");
+                 if (Properties.Settings.Default.CloseSnakeBiteOnLaunch)
+                     ExitLauncher(silent);
+             }
+             else
+             {
+                 MessageBox.Show("Unable to locate MgsGroundZeroes.exe. Please check the Settings and try again.", "Error launching Ground Zeroes", MessageBoxButtons.OK, MessageBoxIcon.Error);
+             }
+         }
+         
         private void ShowMods()
         {
             PlaySound("ui_select");

@@ -254,13 +254,13 @@ namespace SnakeBite
                     Debug.LogLine("Launching game...", Debug.LogLevel.Basic);
                     try
                     {
-                        Process.Start(GamePaths.GameDir + "\\MgsGroundZeroes.exe");
+                        Process.Start("steam://rungameid/311340");
                         if (Properties.Settings.Default.CloseSnakeBiteOnLaunch)
                             Application.Exit();
                     }
                     catch
                     {
-                        Debug.LogLine("Failed to run MgsGroundZeroes.exe", Debug.LogLevel.Basic);
+                        Debug.LogLine("Failed to launch game via Steam", Debug.LogLevel.Basic);
                     }
 
                 }
