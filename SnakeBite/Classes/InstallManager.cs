@@ -464,7 +464,7 @@ namespace SnakeBite
                     // Combine lists (Union handles duplicates)
                     pulledPack = pulledPack.Union(extrPack, StringComparer.OrdinalIgnoreCase).ToList();
                     
-                    GzsLib.WriteFpkArchive(workingDestination, "_build", pulledPack, fpkReferences);
+                    GzsLib.WriteFpkArchive(workingDestination, "_build", pulledPack, fpkReferences, existingQarSource);
                     
                     if(Directory.Exists("_build")) Directory.Delete("_build", true);
                 }

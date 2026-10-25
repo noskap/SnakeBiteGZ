@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Xml.Linq;
 
 namespace SnakeBite.GzsTool
@@ -733,7 +734,7 @@ namespace SnakeBite.GzsTool
         }
 #endif
 
-        public static void WriteFpkArchive(string FileName, string SourceDirectory, List<string> Files, List<string> references)
+        public static void WriteFpkArchive(string FileName, string SourceDirectory, List<string> Files, List<string> references, string sourceArchive = null)
         {
             Debug.LogLine(String.Format("[GzsLib] Writing FPK archive (CLI): {0}", FileName));
 
@@ -826,45 +827,23 @@ namespace SnakeBite.GzsTool
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogLine(String.Format("[GzsLib] Failed to load preserved XML: {0}. Generating fresh.", ex.Message));
+                    Debug.LogLine(String.Format("[GzsLib] Failed to load preserved XML: {0}. Reading the archive instead.", ex.Message));
                     doc = null;
                 }
             }
             if (doc == null)
             {
-                Debug.LogLine("[GzsLib] No preserved CLI XML — generating fresh manifest");
-                List<string> fpkFilesSorted = SortFpksFiles(fpkType, Files);
+                string archivePath = null;
+                if (!string.IsNullOrEmpty(sourceArchive) && File.Exists(sourceArchive))
+                    archivePath = sourceArchive;
+                else if (File.Exists(FileName))
+                    archivePath = FileName;
 
-                XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
-                XNamespace xsd = "http://www.w3.org/2001/XMLSchema";
+                if (archivePath == null)
+                    throw RefuseWithoutStoredPaths(FileName, Files);
 
-                XElement entries = new XElement("Entries");
-                foreach (string s in fpkFilesSorted)
-                {
-                    string qPath = Tools.ToQarPath(s).TrimStart('/');
-                    entries.Add(new XElement("Entry", new XAttribute("FilePath", "/" + qPath)));
-                }
-
-                XElement refs = new XElement("References");
-                if (references != null)
-                {
-                    foreach (string r in references)
-                    {
-                        refs.Add(new XElement("Reference", new XAttribute("FilePath", r)));
-                    }
-                }
-
-                doc = new XDocument(
-                    new XElement("ArchiveFile",
-                        new XAttribute(XNamespace.Xmlns + "xsi", xsi),
-                        new XAttribute(XNamespace.Xmlns + "xsd", xsd),
-                        new XAttribute("Name", Path.GetFileName(FileName)),
-                        new XAttribute(xsi + "type", "FpkFile"),
-                        new XAttribute("FpkType", fpkTypeAttr),
-                        entries,
-                        refs
-                    )
-                );
+                Debug.LogLine(String.Format("[GzsLib] No preserved CLI XML — reading stored paths from {0}", archivePath));
+                doc = BuildManifestFromArchive(archivePath, FileName, fpkTypeAttr, Files, references);
             }
 
             doc.Save(xmlPath);
@@ -910,6 +889,175 @@ namespace SnakeBite.GzsTool
             }
             Debug.LogLine(String.Format("[GzsLib] FPK archive written (CLI): {0} ({1} entries, {2} references)",
                 FileName, entryCount, references != null ? references.Count : 0));
+        }
+
+        // The /as/ spelling is stored in the fpkd. Copy those bytes onto the manifest.
+        // A new file has no stored spelling yet, so it is written as a plaintext path.
+        private static XDocument BuildManifestFromArchive(string archivePath, string FileName, string fpkTypeAttr, List<string> Files, List<string> references)
+        {
+            EnsureFpkMd5Dictionary();
+
+            FpkFile archive = new FpkFile();
+            archive.Name = Path.GetFileName(archivePath);
+            using (FileStream input = new FileStream(archivePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                archive.Read(input);
+            }
+
+            HashSet<string> diskFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            if (Files != null)
+            {
+                foreach (string s in Files)
+                    diskFiles.Add(Tools.ToQarPath(s).TrimStart('/'));
+            }
+
+            XElement entries = new XElement("Entries");
+            HashSet<string> packed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            List<string> omittedKeys = new List<string>();
+            int encryptedKept = 0;
+
+            foreach (FpkEntry entry in archive.Entries)
+            {
+                string resolvedKey = (entry.FilePath ?? "").Replace('\\', '/').TrimStart('/');
+                string hexName = HexEntryName(entry);
+                string matchedKey = null;
+                bool matchedHex = false;
+
+                if (resolvedKey.Length > 0 && diskFiles.Contains(resolvedKey))
+                    matchedKey = resolvedKey;
+                else if (hexName != null && diskFiles.Contains(hexName))
+                {
+                    matchedKey = hexName;
+                    matchedHex = true;
+                }
+
+                bool encrypted = entry.EncryptedFilePath != null && entry.EncryptedFilePath.Length > 0;
+                if (matchedKey == null)
+                {
+                    if (encrypted)
+                        omittedKeys.Add(StoredPathName(entry));
+                    continue;
+                }
+
+                if (packed.Contains(matchedKey))
+                    continue;
+                packed.Add(matchedKey);
+
+                string xmlPath = matchedHex ? matchedKey : entry.FilePath;
+                var attributes = new List<XAttribute>();
+                attributes.Add(new XAttribute("FilePath", xmlPath));
+
+                bool resolved = entry.FilePathFpkString != null && entry.FilePathFpkString.ValueResolved;
+                if ((matchedHex || !resolved) && entry.Md5Hash != null)
+                    attributes.Add(new XAttribute("Hash", Convert.ToBase64String(entry.Md5Hash)));
+                if (encrypted)
+                {
+                    attributes.Add(new XAttribute("EncryptedFilePath", Convert.ToBase64String(entry.EncryptedFilePath)));
+                    encryptedKept++;
+                }
+
+                entries.Add(new XElement("Entry", attributes.ToArray()));
+            }
+
+            List<string> newFiles = new List<string>();
+            if (Files != null)
+            {
+                foreach (string s in Files)
+                {
+                    string qPath = Tools.ToQarPath(s).TrimStart('/');
+                    if (!packed.Contains(qPath))
+                        newFiles.Add(s);
+                }
+            }
+
+            if (omittedKeys.Count > 0 && newFiles.Count > 0)
+            {
+                string message = String.Format(
+                    "[GzsLib] Refusing to write {0}. {1} stored paths were not matched to a file, and {2} files are not in the archive. Dropped paths:\r\n{3}",
+                    Path.GetFileName(FileName),
+                    omittedKeys.Count,
+                    newFiles.Count,
+                    string.Join("\r\n", omittedKeys.ToArray()));
+                Debug.LogLine(message);
+                throw new InvalidOperationException(message);
+            }
+
+            foreach (string omitted in omittedKeys)
+                Debug.LogLine(String.Format("[GzsLib] Omitted stored path (file not in the pack list): {0}", omitted));
+
+            string fpkType = fpkTypeAttr == "Fpkd" ? "fpkd" : "fpk";
+            foreach (string s in SortFpksFiles(fpkType, newFiles))
+            {
+                string qPath = Tools.ToQarPath(s).TrimStart('/');
+                entries.Add(new XElement("Entry", new XAttribute("FilePath", "/" + qPath)));
+                Debug.LogLine(String.Format("[GzsLib] New FPK entry (not in source archive): {0}", qPath));
+            }
+
+            Debug.LogLine(String.Format("[GzsLib] Manifest from archive: {0} entries, {1} stored /as/ paths", entries.Elements("Entry").Count(), encryptedKept));
+
+            XNamespace xsi = "http://www.w3.org/2001/XMLSchema-instance";
+            XNamespace xsd = "http://www.w3.org/2001/XMLSchema";
+            XElement refs = new XElement("References");
+            if (references != null)
+            {
+                foreach (string r in references)
+                    refs.Add(new XElement("Reference", new XAttribute("FilePath", r)));
+            }
+
+            return new XDocument(
+                new XElement("ArchiveFile",
+                    new XAttribute(XNamespace.Xmlns + "xsi", xsi),
+                    new XAttribute(XNamespace.Xmlns + "xsd", xsd),
+                    new XAttribute("Name", Path.GetFileName(FileName)),
+                    new XAttribute(xsi + "type", "FpkFile"),
+                    new XAttribute("FpkType", fpkTypeAttr),
+                    entries,
+                    refs
+                )
+            );
+        }
+
+        private static void EnsureFpkMd5Dictionary()
+        {
+            string besideTool = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "fpk_dictionary.txt");
+            if (File.Exists(besideTool))
+                Hashing.ReadMd5Dictionary(besideTool);
+            else if (File.Exists("fpk_dictionary.txt"))
+                Hashing.ReadMd5Dictionary("fpk_dictionary.txt");
+            else
+                Debug.LogLine("[GzsLib] fpk_dictionary.txt not found. Encrypted paths stay unresolved.");
+        }
+
+        private static string HexEntryName(FpkEntry entry)
+        {
+            if (entry.Md5Hash == null || entry.Md5Hash.Length == 0)
+                return null;
+            string ext = Path.GetExtension(entry.FilePath ?? "");
+            return BitConverter.ToString(entry.Md5Hash).Replace("-", "") + ext;
+        }
+
+        private static string StoredPathName(FpkEntry entry)
+        {
+            if (entry.EncryptedFilePath != null && entry.EncryptedFilePath.Length > 0)
+                return Encoding.Default.GetString(entry.EncryptedFilePath);
+            return entry.FilePath ?? "";
+        }
+
+        private static InvalidOperationException RefuseWithoutStoredPaths(string FileName, List<string> Files)
+        {
+            var names = new List<string>();
+            if (Files != null)
+            {
+                foreach (string s in Files)
+                    names.Add(Tools.ToQarPath(s));
+            }
+            string message = String.Format(
+                "[GzsLib] Refusing to write {0}. No manifest and no source archive, so the stored path cannot be read for {1} entries:\r\n{2}",
+                Path.GetFileName(FileName),
+                names.Count,
+                string.Join("\r\n", names.ToArray()));
+            Debug.LogLine(message);
+            return new InvalidOperationException(message);
         }
 
         // Export QAR/G0S archive — CLI-based for G0S (GzsTool.Core doesn't support GZ format)
