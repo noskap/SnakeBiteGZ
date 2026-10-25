@@ -7,6 +7,7 @@ Based on the fork at: https://github.com/TinManTex/SnakeBite
 https://github.com/noskap/SnakeBiteGZ
 
 ### Future work
+- Identity repack, inner container first: `gntn_common.fpkd`, then one model `.fpk`, then `data_02.g0s`. Pass bar is entry key plus payload bytes, including unknown 64-bit keys. A repack that would drop a key fails instead of writing the archive. See `gz_moddability_checklist.md`.
 - Fork GzsLib and unify classes between makebite and snakebite
 - Fix RevertChanges.MGSVPreset
 - Fix Start game not working properly
