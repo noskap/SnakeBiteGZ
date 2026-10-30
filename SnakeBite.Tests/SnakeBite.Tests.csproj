@@ -33,11 +33,47 @@
 
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="GzsTool.Core">
+      <HintPath>..\lib\GzsTool.Core.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="RunTests.cs" />
     <Compile Include="ModInstallTests.cs" />
+    <Compile Include="ArchiveRoundTripTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\SnakeBite\GzsTool.exe">
+      <Link>GzsTool.exe</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SnakeBite\GzsTool.exe.config">
+      <Link>GzsTool.exe.config</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SnakeBite\CityHash.dll">
+      <Link>CityHash.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\lib\GzsTool.Core.dll">
+      <Link>GzsTool.Core.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SnakeBite\fpk_dictionary.txt">
+      <Link>fpk_dictionary.txt</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SnakeBite\gzs_dictionary.txt">
+      <Link>gzs_dictionary.txt</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\SnakeBite\qar_dictionary.txt">
+      <Link>qar_dictionary.txt</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SnakeBite\SnakeBite.csproj">

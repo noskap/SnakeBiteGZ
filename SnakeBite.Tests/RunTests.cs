@@ -8,16 +8,36 @@ namespace TestRunner
     {
         static void Main(string[] args)
         {
+            bool named = args != null && args.Length > 0;
+            bool runArchives = !named || Has(args, "archives") || Has(args, "all");
+            bool runMods = !named || Has(args, "mods") || Has(args, "all");
+
             Console.WriteLine("Starting Tests...");
-            var testObj = new ModInstallTests();
             try
             {
-                Console.WriteLine("Setup...");
-                testObj.Setup();
-                
-                Console.WriteLine("Running All Tests...");
-                testObj.RunAllTests();
-                
+                if (runArchives)
+                {
+                    Console.WriteLine("Running archive round-trip tests...");
+                    new ArchiveRoundTripTests().RunAll();
+                }
+
+                if (runMods)
+                {
+                    var testObj = new ModInstallTests();
+                    try
+                    {
+                        Console.WriteLine("Setup...");
+                        testObj.Setup();
+                        Console.WriteLine("Running mod install tests...");
+                        testObj.RunAllTests();
+                    }
+                    finally
+                    {
+                        Console.WriteLine("Cleanup...");
+                        try { testObj.Cleanup(); } catch { }
+                    }
+                }
+
                 Console.WriteLine("All tests passed successfully!");
             }
             catch (Exception ex)
@@ -27,11 +47,16 @@ namespace TestRunner
                 Console.ResetColor();
                 Environment.Exit(1);
             }
-            finally
+        }
+
+        static bool Has(string[] args, string name)
+        {
+            foreach (string arg in args)
             {
-                Console.WriteLine("Cleanup...");
-                try { testObj.Cleanup(); } catch { }
+                if (string.Equals(arg, name, StringComparison.OrdinalIgnoreCase))
+                    return true;
             }
+            return false;
         }
     }
 }

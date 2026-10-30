@@ -200,15 +200,25 @@ namespace SnakeBite.GzsTool
             HashSet<string> diskFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string s in Files)
             {
-                diskFiles.Add(Tools.ToQarPath(s).TrimStart('/'));
+                diskFiles.Add(ArchiveDiskKey(s));
             }
 
-            if (File.Exists(preservedXmlPath))
+            if (!File.Exists(preservedXmlPath) && File.Exists(FileName))
             {
-                Debug.LogLine(String.Format("[GzsLib] Using preserved CLI XML manifest: {0}", preservedXmlPath));
+                Debug.LogLine(String.Format("[GzsLib] No preserved CLI XML — reading stored paths from {0}", FileName));
+                doc = ReadManifestFromArchive(FileName);
+            }
+
+            List<string> unknownDrops = new List<string>();
+            if (doc != null || File.Exists(preservedXmlPath))
+            {
                 try
                 {
-                    doc = XDocument.Load(preservedXmlPath);
+                    if (doc == null)
+                    {
+                        Debug.LogLine(String.Format("[GzsLib] Using preserved CLI XML manifest: {0}", preservedXmlPath));
+                        doc = XDocument.Load(preservedXmlPath);
+                    }
                     XElement archiveFile = doc.Root;
                     if (archiveFile != null)
                     {
@@ -227,7 +237,7 @@ namespace SnakeBite.GzsTool
                                 XAttribute filePathAttr = entry.Attribute("FilePath");
                                 if (filePathAttr != null)
                                 {
-                                    string xmlPath2 = filePathAttr.Value.TrimStart('/');
+                                    string xmlPath2 = ArchiveDiskKey(filePathAttr.Value);
                                     
                                     if (diskFiles.Contains(xmlPath2))
                                     {
@@ -239,34 +249,52 @@ namespace SnakeBite.GzsTool
                             
                             foreach (string s in Files)
                             {
-                                string qPath = Tools.ToQarPath(s).TrimStart('/');
-                                if (!processed.Contains(qPath) && !s.EndsWith("_unknown"))
+                                string qPath = ArchiveDiskKey(s);
+                                if (processed.Contains(qPath))
+                                    continue;
+                                if (IsUnknownQarName(s))
                                 {
-                                    bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); 
-                                    entries.Add(new XElement("Entry", 
-                                        new XAttribute("FilePath", "/" + qPath),
-                                        new XAttribute("Compressed", compressed)
-                                    ));
-                                    processed.Add(qPath);
+                                    unknownDrops.Add(Tools.ToQarPath(s));
+                                    continue;
                                 }
+                                bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); 
+                                entries.Add(new XElement("Entry", 
+                                    new XAttribute("FilePath", "/" + qPath),
+                                    new XAttribute("Compressed", compressed)
+                                ));
+                                processed.Add(qPath);
                             }
                         }
                     }
                 }
+                catch (InvalidOperationException)
+                {
+                    throw;
+                }
                 catch (Exception ex)
                 {
-                    Debug.LogLine(String.Format("[GzsLib] Failed to load preserved XML: {0}. Generating fresh.", ex.Message));
+                    Debug.LogLine(String.Format("[GzsLib] Failed to load preserved XML: {0}.", ex.Message));
                     doc = null;
                 }
             }
 
+            if (unknownDrops.Count > 0)
+                throw RefuseUnreadQarKeys(FileName, unknownDrops);
+
             if (doc == null)
             {
-                Debug.LogLine("[GzsLib] No preserved CLI XML \u2014 generating fresh manifest");
+                Debug.LogLine("[GzsLib] No preserved CLI XML — generating fresh manifest");
+                foreach (string s in Files)
+                {
+                    if (IsUnknownQarName(s))
+                        unknownDrops.Add(Tools.ToQarPath(s));
+                }
+                if (unknownDrops.Count > 0)
+                    throw RefuseUnreadQarKeys(FileName, unknownDrops);
+
                 XElement entries = new XElement("Entries");
                 foreach (string s in Files)
                 {
-                    if (s.EndsWith("_unknown")) { continue; }
                     bool compressed = (Path.GetExtension(s).EndsWith(".fpk") || Path.GetExtension(s).EndsWith(".fpkd") || Path.GetExtension(s).EndsWith(".g0s")); 
                     entries.Add(new XElement("Entry", 
                         new XAttribute("FilePath", Tools.ToQarPath(s)),
@@ -764,7 +792,7 @@ namespace SnakeBite.GzsTool
                             HashSet<string> diskFiles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                             foreach (string s in Files)
                             {
-                                diskFiles.Add(Tools.ToQarPath(s).TrimStart('/'));
+                                diskFiles.Add(ArchiveDiskKey(s));
                             }
                             List<XElement> originalEntries = entries.Elements("Entry").ToList();
                             entries.RemoveNodes();
@@ -775,7 +803,7 @@ namespace SnakeBite.GzsTool
                                 XAttribute filePathAttr = entry.Attribute("FilePath");
                                 if (filePathAttr != null)
                                 {
-                                    string xmlPath2 = filePathAttr.Value.TrimStart('/');
+                                    string xmlPath2 = ArchiveDiskKey(filePathAttr.Value);
                                     
                                     if (diskFiles.Contains(xmlPath2))
                                     {
@@ -804,7 +832,7 @@ namespace SnakeBite.GzsTool
                             }
                             foreach (string s in Files)
                             {
-                                string qPath = Tools.ToQarPath(s).TrimStart('/');
+                                string qPath = ArchiveDiskKey(s);
                                 if (!processed.Contains(qPath))
                                 {
                                     entries.Add(new XElement("Entry", new XAttribute("FilePath", "/" + qPath)));
@@ -908,7 +936,7 @@ namespace SnakeBite.GzsTool
             if (Files != null)
             {
                 foreach (string s in Files)
-                    diskFiles.Add(Tools.ToQarPath(s).TrimStart('/'));
+                    diskFiles.Add(ArchiveDiskKey(s));
             }
 
             XElement entries = new XElement("Entries");
@@ -918,7 +946,7 @@ namespace SnakeBite.GzsTool
 
             foreach (FpkEntry entry in archive.Entries)
             {
-                string resolvedKey = (entry.FilePath ?? "").Replace('\\', '/').TrimStart('/');
+                string resolvedKey = ArchiveDiskKey(entry.FilePath);
                 string hexName = HexEntryName(entry);
                 string matchedKey = null;
                 bool matchedHex = false;
@@ -964,7 +992,7 @@ namespace SnakeBite.GzsTool
             {
                 foreach (string s in Files)
                 {
-                    string qPath = Tools.ToQarPath(s).TrimStart('/');
+                    string qPath = ArchiveDiskKey(s);
                     if (!packed.Contains(qPath))
                         newFiles.Add(s);
                 }
@@ -973,11 +1001,12 @@ namespace SnakeBite.GzsTool
             if (omittedKeys.Count > 0 && newFiles.Count > 0)
             {
                 string message = String.Format(
-                    "[GzsLib] Refusing to write {0}. {1} stored paths were not matched to a file, and {2} files are not in the archive. Dropped paths:\r\n{3}",
+                    "[GzsLib] Refusing to write {0}. {1} stored paths were not matched to a file, and {2} files are not in the archive. Dropped paths:\r\n{3}\r\nFiles not in the archive:\r\n{4}",
                     Path.GetFileName(FileName),
                     omittedKeys.Count,
                     newFiles.Count,
-                    string.Join("\r\n", omittedKeys.ToArray()));
+                    string.Join("\r\n", omittedKeys.ToArray()),
+                    string.Join("\r\n", newFiles.ToArray()));
                 Debug.LogLine(message);
                 throw new InvalidOperationException(message);
             }
@@ -988,7 +1017,7 @@ namespace SnakeBite.GzsTool
             string fpkType = fpkTypeAttr == "Fpkd" ? "fpkd" : "fpk";
             foreach (string s in SortFpksFiles(fpkType, newFiles))
             {
-                string qPath = Tools.ToQarPath(s).TrimStart('/');
+                string qPath = ArchiveDiskKey(s);
                 entries.Add(new XElement("Entry", new XAttribute("FilePath", "/" + qPath)));
                 Debug.LogLine(String.Format("[GzsLib] New FPK entry (not in source archive): {0}", qPath));
             }
@@ -1028,6 +1057,16 @@ namespace SnakeBite.GzsTool
                 Debug.LogLine("[GzsLib] fpk_dictionary.txt not found. Encrypted paths stay unresolved.");
         }
 
+        private static string ArchiveDiskKey(string path)
+        {
+            if (string.IsNullOrEmpty(path))
+                return "";
+            string key = path.Replace('\\', '/').TrimStart('/');
+            if (key.Length >= 2 && key[1] == ':')
+                key = key.Substring(2).TrimStart('/');
+            return key;
+        }
+
         private static string HexEntryName(FpkEntry entry)
         {
             if (entry.Md5Hash == null || entry.Md5Hash.Length == 0)
@@ -1058,6 +1097,44 @@ namespace SnakeBite.GzsTool
                 string.Join("\r\n", names.ToArray()));
             Debug.LogLine(message);
             return new InvalidOperationException(message);
+        }
+
+        private static bool IsUnknownQarName(string path)
+        {
+            return path.EndsWith("_unknown", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static InvalidOperationException RefuseUnreadQarKeys(string fileName, List<string> names)
+        {
+            string message = String.Format(
+                "[GzsLib] Refusing to write {0}. Stored hash cannot be read for {1} entries:\r\n{2}",
+                Path.GetFileName(fileName),
+                names.Count,
+                string.Join("\r\n", names.ToArray()));
+            Debug.LogLine(message);
+            return new InvalidOperationException(message);
+        }
+
+        private static XDocument ReadManifestFromArchive(string archivePath)
+        {
+            string tempDir = Path.Combine(Path.GetTempPath(), "sb_manifest_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            try
+            {
+                string copy = Path.Combine(tempDir, Path.GetFileName(archivePath));
+                File.Copy(archivePath, copy);
+                if (!RunGzsTool(String.Format("\"{0}\"", copy)))
+                    throw new InvalidOperationException(String.Format("[GzsLib] Could not read stored paths from {0}", archivePath));
+                string xml = copy + ".xml";
+                if (!File.Exists(xml))
+                    throw new InvalidOperationException(String.Format("[GzsLib] Could not read stored paths from {0}", archivePath));
+                return XDocument.Load(xml);
+            }
+            finally
+            {
+                if (Directory.Exists(tempDir))
+                    Util.DeleteDirectory(tempDir);
+            }
         }
 
         // Export QAR/G0S archive — CLI-based for G0S (GzsTool.Core doesn't support GZ format)
